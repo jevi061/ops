@@ -10,7 +10,7 @@ type Runner interface {
 	ID() string
 	Connect() error
 	Close() error
-	Run(*Job, InputFunc) error
+	Run(*Job, io.Reader) error
 	Wait() error
 	Stdin() io.WriteCloser
 	Stderr() io.Reader

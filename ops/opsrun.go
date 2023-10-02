@@ -2,7 +2,6 @@ package ops
 
 import (
 	"archive/tar"
-	"bytes"
 	"compress/gzip"
 	"errors"
 	"fmt"
@@ -13,12 +12,12 @@ import (
 	"strings"
 )
 
-// OpsRun is minimum unit of task for ops runner to run
+// OpsRun is minimum unit of task with target computers for ops to run
 type OpsRun struct {
-	runners      []runner.Runner
-	task         *Task
-	input        io.Reader
-	inputTrigger func() error // func to provide stdin for task
+	runners []runner.Runner
+	task    *Task
+	envs    map[string]string
+	input   io.Reader // channel for transfer data to remote stdin
 }
 
 func (tr *OpsRun) MustParse(cmdline string) (string, []string) {
@@ -40,18 +39,19 @@ func (tr *OpsRun) MustParse(cmdline string) (string, []string) {
 func (tr *OpsRun) GenerateRunnerJob() *runner.Job {
 	if tr.task.LocalCmd != "" {
 		cmd, args := tr.MustParse(tr.task.LocalCmd)
-		return &runner.Job{Cmd: cmd, Args: args}
+		return &runner.Job{Cmd: cmd, Args: args, Envs: tr.envs}
 	}
 	if tr.task.Cmd != "" {
 		cmd, args := tr.MustParse(tr.task.Cmd)
-		return &runner.Job{Cmd: cmd, Args: args}
+		return &runner.Job{Cmd: cmd, Args: args, Envs: tr.envs}
 	}
 	if tr.task.Upload != nil {
-		return &runner.Job{Cmd: fmt.Sprintf("tar -C %s -xzf -", tr.task.Upload.Dest), Input: tr.input}
+		return &runner.Job{Cmd: fmt.Sprintf("tar -C %s -xzf -", tr.task.Upload.Dest), Envs: tr.envs, Input: tr.input}
 	}
 	return nil
 }
 
+// NewOpsRun create opsrun with global environments
 func NewOpsRun(task *Task, envs map[string]string, runners []runner.Runner) (*OpsRun, error) {
 	if task == nil {
 		return nil, errors.New("empty task not allowed")
@@ -62,12 +62,21 @@ func NewOpsRun(task *Task, envs map[string]string, runners []runner.Runner) (*Op
 	if task.Cmd == "" && task.LocalCmd == "" && task.Upload == nil {
 		return nil, errors.New("no cmd/local-cmd/upload directive found")
 	}
+	// apply global environments to task
+	vs := make(map[string]string)
+	for k, v := range envs {
+		vs[k] = v
+	}
+	for k, v := range task.Envs {
+		vs[k] = v
+	}
+	task.Envs = vs
 	if task.LocalCmd != "" {
-		r := runner.NewLocalRunner(envs)
+		r := runner.NewLocalRunner()
 		if err := r.Connect(); err != nil {
 			return nil, err
 		}
-		return &OpsRun{task: task, runners: []runner.Runner{r}}, nil
+		return &OpsRun{task: task, envs: vs, runners: []runner.Runner{r}}, nil
 	}
 	if task.Upload != nil && task.Download != nil {
 		return nil, errors.New("upload and download should seperated into different task")
@@ -83,36 +92,31 @@ func NewOpsRun(task *Task, envs map[string]string, runners []runner.Runner) (*Op
 			return nil, fmt.Errorf("resolve upload src file path failed:%w", err)
 		}
 		absSrc := os.Expand(src, func(s string) string { return task.Envs[s] })
-		fmt.Println("tar files:", absSrc)
-		buf, trigger, err := tarFiles(absSrc)
-		fmt.Println("buf:", buf, "trigger:", trigger)
+		pr, err := pipeFiles(absSrc)
 		if err != nil {
 			return nil, err
 		}
-		return &OpsRun{task: task, input: buf, inputTrigger: trigger, runners: runners}, nil
+		return &OpsRun{task: task, envs: vs, input: pr, runners: runners}, nil
 
 	}
-
-	return &OpsRun{task: task, input: nil, runners: runners}, nil
+	return &OpsRun{task: task, envs: vs, input: nil, runners: runners}, nil
 }
 
-func tarFiles(src string) (io.Reader, func() error, error) {
+func pipeFiles(src string) (io.Reader, error) {
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {
-		return nil, nil, fmt.Errorf("unable to tar: %s :%w", src, err)
+		return nil, fmt.Errorf("unable to tar: %s :%w", src, err)
 	}
-	buf := new(bytes.Buffer)
-	return buf, func() error {
-
-		gzw := gzip.NewWriter(buf)
-		defer gzw.Close()
-
-		tw := tar.NewWriter(gzw)
+	pr, pw := io.Pipe()
+	go func() {
+		defer pw.Close()
+		gzipw := gzip.NewWriter(pw)
+		defer gzipw.Close()
+		tw := tar.NewWriter(gzipw)
 		defer tw.Close()
-
 		// walk path
-		return filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
-			fmt.Println("upload file:", file, "src:", src)
+		err := filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
+			// fmt.Println("upload file:", file, "src:", src)
 			// return on any error
 			if err != nil {
 				return err
@@ -154,6 +158,10 @@ func tarFiles(src string) (io.Reader, func() error, error) {
 
 			return nil
 		})
-	}, nil
+		if err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
+	}()
+	return pr, nil
 
 }

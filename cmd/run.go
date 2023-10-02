@@ -3,7 +3,6 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"ops/ops"
 	"os"
 
@@ -13,7 +12,7 @@ import (
 var (
 	tag     string
 	opsfile string
-	debug   bool
+	quiet   bool
 )
 
 func NewRunCmd() *cobra.Command {
@@ -28,7 +27,7 @@ func NewRunCmd() *cobra.Command {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			data, err := ioutil.ReadFile(opsfile)
+			data, err := os.ReadFile(opsfile)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
@@ -38,16 +37,7 @@ func NewRunCmd() *cobra.Command {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			for k, v := range conf.Computers.Names {
-				fmt.Println("computer:", k, "detail:", v)
-			}
-			for k, v := range conf.Tasks.Names {
-				fmt.Printf("task:%s,detail:%vv\n", k, v)
-			}
-			for k, v := range conf.Environments.Envs {
-				fmt.Println("env:", k, v)
-			}
-			o := ops.NewOps(conf, ops.WithDebug(debug))
+			o := ops.NewOps(conf, ops.WithDebug(!quiet))
 			selected := make([]*ops.Computer, 0)
 			if tag == "" {
 				for _, v := range conf.Computers.Names {
@@ -62,7 +52,7 @@ func NewRunCmd() *cobra.Command {
 					}
 				}
 			}
-			taskRuns, err := o.PrepareTaskRuns(selected, args)
+			taskRuns, err := o.PrepareOpsRuns(selected, args)
 			if err != nil {
 				var pe *ops.ParseError
 				var ce *ops.ConnectError
@@ -77,8 +67,8 @@ func NewRunCmd() *cobra.Command {
 			}
 			runners := o.CollectRunners(taskRuns)
 			defer o.CloseRunners(runners)
-			o.SetRunnersRunningMode(runners, debug)
-			if debug {
+			o.SetRunnersRunningMode(runners, !quiet)
+			if !quiet {
 				o.AlignAndColorRunnersPromets(runners)
 			}
 			if err := o.Execute(taskRuns); err != nil {
@@ -99,6 +89,6 @@ func NewRunCmd() *cobra.Command {
 	}
 	runCmd.PersistentFlags().StringVarP(&tag, "tag", "t", "", "computers tag")
 	runCmd.PersistentFlags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
-	runCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "run task|pipeline in debug mode")
+	runCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "run task|pipeline in quiet mode")
 	return runCmd
 }

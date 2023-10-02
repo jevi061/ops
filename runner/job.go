@@ -10,6 +10,7 @@ import (
 type Job struct {
 	Cmd   string
 	Args  []string
+	Envs  map[string]string
 	Input io.Reader
 }
 

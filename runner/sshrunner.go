@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/rs/xid"
 	"golang.org/x/crypto/ssh"
@@ -25,7 +24,6 @@ type SSHRunner struct {
 	stdout        io.Reader
 	stderr        io.Reader
 	sessionOpened bool
-	envs          map[string]string
 	promet        string // output prefix
 	debug         bool   // run job in debug mode or not
 }
@@ -39,11 +37,6 @@ func WithPort(port uint) SSHRunnerOption {
 func WithUser(user string) SSHRunnerOption {
 	return func(s *SSHRunner) {
 		s.user = user
-	}
-}
-func WithEnvs(envs map[string]string) SSHRunnerOption {
-	return func(s *SSHRunner) {
-		s.envs = envs
 	}
 }
 func WithPassword(password string) SSHRunnerOption {
@@ -74,7 +67,7 @@ func (r *SSHRunner) Connect() error {
 	r.conn = conn
 	return nil
 }
-func (r *SSHRunner) Run(job *Job, input InputFunc) error {
+func (r *SSHRunner) Run(job *Job, input io.Reader) error {
 
 	if r.sessionOpened {
 		return errors.New("another seesion is using")
@@ -97,7 +90,7 @@ func (r *SSHRunner) Run(job *Job, input InputFunc) error {
 	if err != nil {
 		return err
 	}
-	for k, v := range r.envs {
+	for k, v := range job.Envs {
 		r.session.Setenv(k, v)
 	}
 	args := strings.Join(job.Args, " ")
@@ -121,33 +114,10 @@ func (r *SSHRunner) Run(job *Job, input InputFunc) error {
 		return err
 	}
 	r.sessionOpened = true
-	if input != nil {
-		go func() {
-			// trigger func to send data to buf
-			fmt.Println("start to trigger input")
-			if err := input(); err != nil {
-				fmt.Println("trigger input failed:", err)
-			}
-			fmt.Println("trigger input finished")
-		}()
-		go func() {
-			time.Sleep(time.Second * 5)
-			// copy buf to remote stdin
-			fmt.Println("start to copy files")
-
-			if _, err := io.Copy(r.stdin, job.Input); err != nil {
-				fmt.Println("copy files failed:", err)
-			}
-
-			fmt.Println("copy input finished")
-		}()
-
-	}
 	return nil
 
 }
 func (r *SSHRunner) Wait() error {
-	fmt.Println("wait cmd to finished")
 	if !r.sessionOpened {
 		return errors.New("wait on closed ssh session is not allowed")
 	}

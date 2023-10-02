@@ -61,13 +61,12 @@ func (ce *ConnectError) Error() string {
 func (pe *ParseError) Error() string {
 	return pe.Err.Error()
 }
-func (ops *Ops) PrepareTaskRuns(computers []*Computer, pipelines []string) ([]*OpsRun, error) {
+func (ops *Ops) PrepareOpsRuns(computers []*Computer, pipelines []string) ([]*OpsRun, error) {
 	// prepare runners for computers
 	runners := make([]runner.Runner, 0)
 	for _, c := range computers {
 		runners = append(runners, runner.NewSSHRunner(c.Host,
-			runner.WithPort(c.Port), runner.WithUser(c.User), runner.WithPassword(c.Password),
-			runner.WithEnvs(ops.conf.Environments.Envs)))
+			runner.WithPort(c.Port), runner.WithUser(c.User), runner.WithPassword(c.Password)))
 	}
 	// connect to runners
 	for _, r := range runners {
@@ -170,11 +169,11 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 		var wg sync.WaitGroup
 		for _, r := range run.runners {
 			job := run.GenerateRunnerJob()
-			if err := r.Run(job, run.inputTrigger); err != nil {
+			if err := r.Run(job, run.input); err != nil {
 				return &RunError{err: err}
 			}
 			if r.Debug() {
-				// copy stdout
+				// copy remote computer's stdout to current
 				wg.Add(1)
 				go func(rn runner.Runner) {
 					defer wg.Done()
@@ -184,7 +183,7 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 					}
 				}(r)
 			}
-			// copy stderr
+			// copy remote computer's stderr to current
 			wg.Add(1)
 			go func(rn runner.Runner) {
 				defer wg.Done()
@@ -193,13 +192,27 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 					fmt.Fprintln(os.Stderr, err)
 				}
 			}(r)
+			// copy input of task to remote computer's stdin
+			if run.input != nil {
+				wg.Add(1)
+				in := r.Stdin()
+				go func() {
+					defer wg.Done()
+					_, err := io.Copy(in, run.input)
+					if err != nil {
+						fmt.Fprintln(os.Stderr, fmt.Errorf("copy data to remote stdin failed:%w", err))
+					}
+					if err := in.Close(); err != nil {
+						fmt.Fprintln(os.Stderr, fmt.Errorf("close remote stdin failed:%w", err))
+					}
+				}()
+			}
+
 		}
+		wg.Wait()
 		signals := make(chan os.Signal, 1)
 		signal.Notify(signals, os.Interrupt)
 		go ops.RelaySignals(run.runners, signals)
-		fmt.Println("wg wait")
-		wg.Wait()
-		fmt.Println("wg down")
 		for _, c := range run.runners {
 			if err := c.Wait(); err != nil {
 				fmt.Fprintln(os.Stdout, c.Host(), red.SprintFunc()("failed:"+err.Error()))

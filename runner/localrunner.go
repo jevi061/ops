@@ -21,18 +21,12 @@ type LocalRunner struct {
 	stdout  io.ReadCloser
 	stderr  io.ReadCloser
 	stdin   io.WriteCloser
-	envs    []string //  Each entry is of the form "key=value".
 	promet  string
 	debug   bool // running in debug mode or not
 }
 
-func NewLocalRunner(envs map[string]string) *LocalRunner {
-	envSlice := make([]string, len(envs))
-	i := 0
-	for k, v := range envs {
-		envSlice[i] = k + "=" + v
-	}
-	return &LocalRunner{id: xid.New().String(), envs: envSlice, host: "localhost"}
+func NewLocalRunner() *LocalRunner {
+	return &LocalRunner{id: xid.New().String(), host: "localhost"}
 }
 func (r *LocalRunner) Connect() error {
 	u, err := user.Current()
@@ -59,13 +53,17 @@ func (r *LocalRunner) Stderr() io.Reader {
 	return r.stderr
 }
 
-func (r *LocalRunner) Run(c *Job, input InputFunc) error {
+func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 	if r.running {
 		return errors.New("runner is already running")
 	}
 	r.running = true
 	cmd := exec.Command(c.Cmd, c.Args...)
-	cmd.Env = append(os.Environ(), r.envs...)
+	jenvs := make([]string, 0)
+	for k, v := range c.Envs {
+		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
+	}
+	cmd.Env = append(os.Environ(), jenvs...)
 	r.exec = cmd
 	var err error
 	r.stdout, err = cmd.StdoutPipe()
