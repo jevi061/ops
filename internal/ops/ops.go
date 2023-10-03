@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
-	"ops/internal/multiwritecloser"
-	"ops/internal/prefixer"
-	"ops/internal/runner"
 	"os"
 	"os/signal"
 	"strconv"
@@ -15,6 +12,9 @@ import (
 	"sync"
 
 	"github.com/fatih/color"
+	"github.com/jevi061/ops/internal/multiwritecloser"
+	"github.com/jevi061/ops/internal/prefixer"
+	"github.com/jevi061/ops/internal/runner"
 	"golang.org/x/term"
 )
 

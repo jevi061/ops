@@ -1,4 +1,4 @@
-module ops
+module github.com/jevi061/ops
 
 go 1.18
 

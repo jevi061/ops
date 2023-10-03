@@ -3,9 +3,9 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"ops/internal/ops"
 	"os"
 
+	"github.com/jevi061/ops/internal/ops"
 	"github.com/spf13/cobra"
 )
 

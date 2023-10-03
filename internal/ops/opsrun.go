@@ -6,10 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"ops/internal/runner"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/jevi061/ops/internal/runner"
 )
 
 // OpsRun is minimum unit of task with target computers for ops to run

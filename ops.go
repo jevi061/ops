@@ -1,8 +1,6 @@
 package main
 
-import (
-	"ops/cmd"
-)
+import "github.com/jevi061/ops/cmd"
 
 func main() {
 
