@@ -1,54 +1,34 @@
 
 computers:
-  172.16.2.123:
-    port: 2211
-    user: root
-    password: supconit
-tasks:
-  echo:
-    desc: 输出 hello ops
-    local-cmd: echo hello ops 
-  whoami: 
-    cmd: whoami
-    desc: 查看当前用户
-  shell: 
-    desc: 查看当前内存情况
-    cmd: free -h
-  cat-compose:
-    desc: 查看 compose
-    cmd: top
-  upload-package:
-    desc: 上传升级包
-    upload:
-      src: .
-      dest: /root/test/
-  show-ssh-process:
-    desc: 查看 ssh 运行情况
-    cmd: |
-      ls -lh /etc/ssh/
-      cat /etc/ssh/sshd_config
-
-
-  ls:
-    cmd: uname -a; date
-
-
-pipelines:
-  test:
-    - echo
-    - echo
-    - echo
-    - whoami
-    - ls
-  deploy:
-    - shell
-    - cat-compose
-
-    
-
-
+    www.example.com:
+        port: 22
+        user: root
+        password: ******
+# global environments to use when ops to run tasks or pipelines
 environments:
-  a: b
-  c: d
-  e: f
-  g: f
+    WORKING_DIR: /app
+tasks:
+    prepare:
+        desc: prepare build directory for building
+        local-cmd: mkdir build
+    build:
+        desc: build project
+        cmd: make build
+    test:
+        desc: test the project
+        cmd: make test
+    upload:
+        desc: upload tested project to remote
+        upload:
+            src: .
+            dest: /app
+    deploy:
+        desc: deploy tested project to remote
+        cmd: make deploy
+pipelines:
+    deploy-project:
+        - build
+        - test
+        - upload
+        - deploy
+	
