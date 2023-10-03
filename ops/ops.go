@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"io"
+	"ops/multiwritecloser"
 	"ops/prefixer"
 	"ops/runner"
 	"os"
@@ -166,7 +167,10 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 			panic(err)
 		}
 		blue.Println(strings.Repeat("*", w))
-		var wg sync.WaitGroup
+		var (
+			wg      sync.WaitGroup
+			writers []io.WriteCloser
+		)
 		for _, r := range run.runners {
 			job := run.GenerateRunnerJob()
 			if err := r.Run(job, run.input); err != nil {
@@ -192,22 +196,20 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 					fmt.Fprintln(os.Stderr, err)
 				}
 			}(r)
-			// copy input of task to remote computer's stdin
-			if run.input != nil {
-				wg.Add(1)
-				in := r.Stdin()
-				go func() {
-					defer wg.Done()
-					_, err := io.Copy(in, run.input)
-					if err != nil {
-						fmt.Fprintln(os.Stderr, fmt.Errorf("copy data to remote stdin failed:%w", err))
-					}
-					if err := in.Close(); err != nil {
-						fmt.Fprintln(os.Stderr, fmt.Errorf("close remote stdin failed:%w", err))
-					}
-				}()
-			}
-
+			writers = append(writers, r.Stdin())
+		}
+		// copy input of task to remote computer's stdin
+		if run.input != nil {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				w := multiwritecloser.NewMultiWriteCloser(writers...)
+				defer w.Close()
+				_, err := io.Copy(w, run.input)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, fmt.Errorf("copy data to remote stdin failed:%w", err))
+				}
+			}()
 		}
 		wg.Wait()
 		signals := make(chan os.Signal, 1)
