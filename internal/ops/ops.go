@@ -181,7 +181,7 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 				wg.Add(1)
 				go func(rn runner.Runner) {
 					defer wg.Done()
-					_, err := io.Copy(os.Stdout, prefixer.NewPrefix(rn.Stdout(), rn.Promet()))
+					_, err := io.Copy(os.Stdout, prefixer.NewPrefixReader(rn.Stdout(), rn.Promet()))
 					if err != nil {
 						fmt.Fprintln(os.Stderr, err)
 					}
@@ -191,7 +191,7 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 			wg.Add(1)
 			go func(rn runner.Runner) {
 				defer wg.Done()
-				_, err := io.Copy(os.Stderr, prefixer.NewPrefix(rn.Stderr(), rn.Promet()))
+				_, err := io.Copy(os.Stderr, prefixer.NewPrefixReader(rn.Stderr(), rn.Promet()))
 				if err != nil {
 					fmt.Fprintln(os.Stderr, err)
 				}

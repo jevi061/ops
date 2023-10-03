@@ -6,21 +6,21 @@ import (
 	"io"
 )
 
-type Prefixer struct {
+type PrefixReader struct {
 	reader *bufio.Reader
 	prefix string
 }
 
-func NewPrefix(reader io.Reader, prefix string) *Prefixer {
+func NewPrefixReader(reader io.Reader, prefix string) *PrefixReader {
 	if reader != nil {
-		return &Prefixer{reader: bufio.NewReader(reader), prefix: prefix}
+		return &PrefixReader{reader: bufio.NewReader(reader), prefix: prefix}
 	} else {
-		return &Prefixer{reader: bufio.NewReader(bytes.NewReader(nil)), prefix: prefix}
+		return &PrefixReader{reader: bufio.NewReader(bytes.NewReader(nil)), prefix: prefix}
 	}
 
 }
 
-func (p *Prefixer) Read(data []byte) (int, error) {
+func (p *PrefixReader) Read(data []byte) (int, error) {
 	line, err := p.reader.ReadBytes('\n')
 	if err != nil {
 		//line = append([]byte(p.prefix), line...)
