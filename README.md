@@ -4,7 +4,11 @@ A simple pipeline tool that allows you to:
 - run shell commands on local or remote computers
 - transfer files or directories to computers
 
+## Installation
 
+```shell
+$ go install github.com/jevi061/ops@latest
+```
 ## Usage
 
 ```shell
