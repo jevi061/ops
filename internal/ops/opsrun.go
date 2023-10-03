@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"ops/runner"
+	"ops/internal/runner"
 	"os"
 	"path/filepath"
 	"strings"

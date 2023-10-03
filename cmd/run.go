@@ -3,7 +3,7 @@ package cmd
 import (
 	"errors"
 	"fmt"
-	"ops/ops"
+	"ops/internal/ops"
 	"os"
 
 	"github.com/spf13/cobra"
