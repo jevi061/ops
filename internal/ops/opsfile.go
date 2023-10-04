@@ -102,6 +102,9 @@ func (p *Pipelines) UnmarshalYAML(node *yaml.Node) error {
 		return err
 	}
 	p.Names = pipes
+	if p.Names == nil {
+		p.Names = make(map[string][]string, 0)
+	}
 	return nil
 }
 
