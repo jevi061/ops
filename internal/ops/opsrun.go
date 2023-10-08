@@ -39,12 +39,10 @@ func (tr *OpsRun) MustParse(cmdline string) (string, []string) {
 }
 func (tr *OpsRun) GenerateRunnerJob() *runner.Job {
 	if tr.task.LocalCmd != "" {
-		cmd, args := tr.MustParse(tr.task.LocalCmd)
-		return &runner.Job{Cmd: cmd, Args: args, Envs: tr.envs}
+		return &runner.Job{Cmd: tr.task.LocalCmd, Envs: tr.envs}
 	}
 	if tr.task.Cmd != "" {
-		cmd, args := tr.MustParse(tr.task.Cmd)
-		return &runner.Job{Cmd: cmd, Args: args, Envs: tr.envs}
+		return &runner.Job{Cmd: tr.task.Cmd, Envs: tr.envs}
 	}
 	if tr.task.Upload != nil {
 		return &runner.Job{Cmd: fmt.Sprintf("tar -C %s -xzf -", tr.task.Upload.Dest), Envs: tr.envs, Input: tr.input}

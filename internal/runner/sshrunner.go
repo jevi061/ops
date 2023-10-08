@@ -3,13 +3,12 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"io"
-	"os"
-	"strings"
-
 	"github.com/rs/xid"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
+	"io"
+	"os"
+	"time"
 )
 
 type SSHRunner struct {
@@ -59,6 +58,7 @@ func (r *SSHRunner) Connect() error {
 			ssh.Password(r.password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		Timeout:         5 * time.Second,
 	}
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", r.host, r.port), config)
 	if err != nil {
@@ -93,9 +93,8 @@ func (r *SSHRunner) Run(job *Job, input io.Reader) error {
 	for k, v := range job.Envs {
 		r.session.Setenv(k, v)
 	}
-	args := strings.Join(job.Args, " ")
 	if r.debug {
-		fmt.Printf("%s%s %s\n", r.Promet(), job.Cmd, args)
+		fmt.Printf("%s%s %s\n", r.Promet(), job.Cmd)
 	}
 	if input == nil {
 		// request pty
@@ -110,7 +109,7 @@ func (r *SSHRunner) Run(job *Job, input io.Reader) error {
 		}
 	}
 
-	if err := r.session.Start(fmt.Sprintf("%s %s", job.Cmd, args)); err != nil {
+	if err := r.session.Start(job.Cmd); err != nil {
 		return err
 	}
 	r.sessionOpened = true

@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"os/user"
 	"runtime"
-	"strings"
 )
 
 type LocalRunner struct {
@@ -59,10 +58,10 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 	}
 	r.running = true
 	sh := "powershell"
-	if runtime.GOOS == "windows" {
+	if runtime.GOOS != "windows" {
 		sh = "bash -c"
 	}
-	cmd := exec.Command(sh, append([]string{c.Cmd}, c.Args...)...)
+	cmd := exec.Command(sh, c.Cmd)
 	jenvs := make([]string, 0)
 	for k, v := range c.Envs {
 		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
@@ -85,8 +84,7 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 		return err
 	}
 	if r.debug {
-		args := strings.Join(c.Args, " ")
-		fmt.Printf("%s%s %s\n", r.Promet(), c.Cmd, args)
+		fmt.Printf("%s%s %s\n", r.Promet(), sh, c.Cmd)
 	}
 	if err := r.exec.Start(); err != nil {
 		return err
