@@ -55,17 +55,18 @@ func NewRunCmd() *cobra.Command {
 			taskRuns, err := o.PrepareOpsRuns(selected, args)
 			if err != nil {
 				var pe *ops.ParseError
-				var ce *ops.ConnectError
 				if errors.As(err, &pe) {
 					fmt.Fprintln(os.Stderr, "PARSE ERROR:", err)
-				} else if errors.As(err, &ce) {
-					fmt.Fprintln(os.Stderr, fmt.Sprintf("CONNECT ERROR(%s):", ce.Host), err)
 				} else {
 					fmt.Fprintln(os.Stderr, err)
 				}
 				os.Exit(1)
 			}
 			runners := o.CollectRunners(taskRuns)
+			if err := o.ConnectRunners(runners); err != nil {
+				fmt.Fprintln(os.Stderr, fmt.Sprintf("CONNECT ERROR(%s):", err.Host), err)
+				os.Exit(1)
+			}
 			defer o.CloseRunners(runners)
 			o.SetRunnersRunningMode(runners, !quiet)
 			if !quiet {
@@ -73,12 +74,9 @@ func NewRunCmd() *cobra.Command {
 			}
 			if err := o.Execute(taskRuns); err != nil {
 				var (
-					ce *ops.ConnectError
 					te *ops.RunError
 				)
-				if errors.As(err, &ce) {
-					fmt.Fprintln(os.Stderr, fmt.Sprintf("CONNECT ERROR(%s):", ce.Host), err)
-				} else if errors.As(err, &te) {
+				if errors.As(err, &te) {
 					fmt.Fprintln(os.Stderr, "TASK ERROR:", err)
 				} else {
 					fmt.Fprintln(os.Stderr, err)

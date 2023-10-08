@@ -72,9 +72,6 @@ func NewOpsRun(task *Task, envs map[string]string, runners []runner.Runner) (*Op
 	task.Envs = vs
 	if task.LocalCmd != "" {
 		r := runner.NewLocalRunner()
-		if err := r.Connect(); err != nil {
-			return nil, err
-		}
 		return &OpsRun{task: task, envs: vs, runners: []runner.Runner{r}}, nil
 	}
 	if task.Upload != nil && task.Download != nil {

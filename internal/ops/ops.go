@@ -69,12 +69,6 @@ func (ops *Ops) PrepareOpsRuns(computers []*Computer, pipelines []string) ([]*Op
 		runners = append(runners, runner.NewSSHRunner(c.Host,
 			runner.WithPort(c.Port), runner.WithUser(c.User), runner.WithPassword(c.Password)))
 	}
-	// connect to runners
-	for _, r := range runners {
-		if err := r.Connect(); err != nil {
-			return nil, &ConnectError{Host: r.Host(), Err: err}
-		}
-	}
 	// prepare TaskRuns
 	runs := make([]*OpsRun, 0)
 	for _, p := range pipelines {
@@ -106,6 +100,14 @@ func (ops *Ops) PrepareOpsRuns(computers []*Computer, pipelines []string) ([]*Op
 
 }
 
+func (ops *Ops) ConnectRunners(runners []runner.Runner) *ConnectError {
+	for _, runner := range runners {
+		if err := runner.Connect(); err != nil {
+			return &ConnectError{Host: runner.Host(), Err: err}
+		}
+	}
+	return nil
+}
 func (ops *Ops) CollectRunners(taskRuns []*OpsRun) []runner.Runner {
 	runners := make([]runner.Runner, 0)
 	cache := make(map[string]runner.Runner, 0)

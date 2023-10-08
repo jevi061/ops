@@ -97,13 +97,13 @@ func (p *Pipelines) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return fmt.Errorf("%d:%d require mappings for pipelines", node.Line, node.Column)
 	}
+	p.Names = make(map[string][]string, 0)
 	var pipes map[string][]string
 	if err := node.Decode(&pipes); err != nil {
 		return err
 	}
-	p.Names = pipes
-	if p.Names == nil {
-		p.Names = make(map[string][]string, 0)
+	if len(pipes) > 0 {
+		p.Names = pipes
 	}
 	return nil
 }
@@ -127,6 +127,9 @@ func NewOpsfile(data []byte) (*Opsfile, error) {
 	var file Opsfile
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
+	}
+	if file.Pipelines == nil {
+		file.Pipelines = &Pipelines{Names: map[string][]string{}}
 	}
 	return &file, nil
 }
