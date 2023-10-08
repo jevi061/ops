@@ -94,7 +94,7 @@ func (r *SSHRunner) Run(job *Job, input io.Reader) error {
 		r.session.Setenv(k, v)
 	}
 	if r.debug {
-		fmt.Printf("%s%s %s\n", r.Promet(), job.Cmd)
+		fmt.Printf("%s%s\n", r.Promet(), job.Cmd)
 	}
 	if input == nil {
 		// request pty
