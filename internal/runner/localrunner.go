@@ -3,13 +3,13 @@ package runner
 import (
 	"errors"
 	"fmt"
+	"github.com/rs/xid"
 	"io"
 	"os"
 	"os/exec"
 	"os/user"
+	"runtime"
 	"strings"
-
-	"github.com/rs/xid"
 )
 
 type LocalRunner struct {
@@ -58,7 +58,11 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 		return errors.New("runner is already running")
 	}
 	r.running = true
-	cmd := exec.Command(c.Cmd, c.Args...)
+	sh := "powershell"
+	if runtime.GOOS == "windows" {
+		sh = "bash -c"
+	}
+	cmd := exec.Command(sh, append([]string{c.Cmd}, c.Args...)...)
 	jenvs := make([]string, 0)
 	for k, v := range c.Envs {
 		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
