@@ -57,11 +57,11 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 		return errors.New("runner is already running")
 	}
 	r.running = true
-	sh := "powershell"
+	shell, flag := "powershell", "Invoke-Expression"
 	if runtime.GOOS != "windows" {
-		sh = "bash -c"
+		shell, flag = "bash", "-c"
 	}
-	cmd := exec.Command(sh, c.Cmd)
+	cmd := exec.Command(shell, flag, c.Cmd)
 	jenvs := make([]string, 0)
 	for k, v := range c.Envs {
 		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
@@ -84,7 +84,7 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 		return err
 	}
 	if r.debug {
-		fmt.Printf("%s%s %s\n", r.Promet(), sh, c.Cmd)
+		fmt.Printf("%s%s %s %s\n", r.Promet(), shell, flag, c.Cmd)
 	}
 	if err := r.exec.Start(); err != nil {
 		return err
