@@ -161,14 +161,14 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 			max = len(run.task.Name)
 		}
 	}
-	green, blue, red := color.New(color.FgHiGreen).Add(color.Bold), color.New(color.FgBlue), color.New(color.FgRed)
+	green, blue, red := color.New(color.FgHiGreen).Add(color.Bold), color.New(color.FgBlue).Add(color.Bold), color.New(color.FgRed)
 	for _, run := range taskRuns {
-		green.Fprintln(os.Stdout, fmt.Sprintf("Task [%-"+strconv.Itoa(max)+"s] %s", run.task.Name, run.task.Desc))
+		blue.Fprintln(os.Stdout, fmt.Sprintf("Task [%-"+strconv.Itoa(max)+"s] %s", run.task.Name, run.task.Desc))
 		w, _, err := term.GetSize(int(os.Stdout.Fd()))
 		if err != nil {
 			panic(err)
 		}
-		blue.Println(strings.Repeat("*", w))
+		fmt.Println(strings.Repeat("-", w))
 		var (
 			wg      sync.WaitGroup
 			writers []io.WriteCloser
