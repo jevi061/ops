@@ -3,12 +3,13 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"github.com/rs/xid"
 	"io"
 	"os"
 	"os/exec"
 	"os/user"
 	"runtime"
+
+	"github.com/rs/xid"
 )
 
 type LocalRunner struct {
@@ -57,7 +58,7 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 		return errors.New("runner is already running")
 	}
 	r.running = true
-	shell, flag := "powershell", "Invoke-Expression"
+	shell, flag := "powershell", "-command"
 	if runtime.GOOS != "windows" {
 		shell, flag = "bash", "-c"
 	}
