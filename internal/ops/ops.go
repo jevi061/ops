@@ -202,7 +202,11 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 		}
 		// copy input of task to remote computer's stdin
 		if run.input != nil {
-			wg.Add(1)
+			wg.Add(2)
+			go func() {
+				defer wg.Done()
+				run.inputTrigger()
+			}()
 			go func() {
 				defer wg.Done()
 				w := multiwritecloser.NewMultiWriteCloser(writers...)

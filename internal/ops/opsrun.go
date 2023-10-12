@@ -15,10 +15,11 @@ import (
 
 // OpsRun is minimum unit of task with target computers for ops to run
 type OpsRun struct {
-	runners []runner.Runner
-	task    *Task
-	envs    map[string]string
-	input   io.Reader // channel for transfer data to remote stdin
+	runners      []runner.Runner
+	task         *Task
+	envs         map[string]string
+	input        io.Reader // channel for transfer data to remote stdin
+	inputTrigger func()    // func to trigger input
 }
 
 func (tr *OpsRun) MustParse(cmdline string) (string, []string) {
@@ -88,23 +89,23 @@ func NewOpsRun(task *Task, envs map[string]string, runners []runner.Runner) (*Op
 			return nil, fmt.Errorf("resolve upload src file path failed:%w", err)
 		}
 		absSrc := os.Expand(src, func(s string) string { return task.Envs[s] })
-		pr, err := pipeFiles(absSrc)
+		pr, trigger, err := pipeFiles(absSrc)
 		if err != nil {
 			return nil, err
 		}
-		return &OpsRun{task: task, envs: vs, input: pr, runners: runners}, nil
+		return &OpsRun{task: task, envs: vs, input: pr, inputTrigger: trigger, runners: runners}, nil
 
 	}
 	return &OpsRun{task: task, envs: vs, input: nil, runners: runners}, nil
 }
 
-func pipeFiles(src string) (io.Reader, error) {
+func pipeFiles(src string) (io.Reader, func(), error) {
 	// ensure the src actually exists before trying to tar it
 	if _, err := os.Stat(src); err != nil {
-		return nil, fmt.Errorf("unable to tar: %s :%w", src, err)
+		return nil, nil, fmt.Errorf("unable to tar: %s :%w", src, err)
 	}
 	pr, pw := io.Pipe()
-	go func() {
+	trigger := func() {
 		defer pw.Close()
 		gzipw := gzip.NewWriter(pw)
 		defer gzipw.Close()
@@ -157,7 +158,7 @@ func pipeFiles(src string) (io.Reader, error) {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
-	}()
-	return pr, nil
+	}
+	return pr, trigger, nil
 
 }
