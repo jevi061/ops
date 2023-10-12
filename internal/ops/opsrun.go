@@ -100,13 +100,13 @@ func NewOpsRun(task *Task, envs map[string]string, runners []runner.Runner) (*Op
 }
 
 func pipeFiles(src string) (io.Reader, func(), error) {
-	// ensure the src actually exists before trying to tar it
-	if _, err := os.Stat(src); err != nil {
-		return nil, nil, fmt.Errorf("unable to tar: %s :%w", src, err)
-	}
 
 	pr, pw := io.Pipe()
 	trigger := func() {
+		// ensure the src actually exists before trying to tar it
+		if _, err := os.Stat(src); err != nil {
+			fmt.Fprintln(os.Stderr, err)
+		}
 		defer pw.Close()
 		gzipw := gzip.NewWriter(pw)
 		defer gzipw.Close()
