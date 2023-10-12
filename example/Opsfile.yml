@@ -1,34 +1,30 @@
 
 computers:
-    www.example.com:
-        port: 22
-        user: root
-        password: ******
+  www.example.com:
+    port: **
+    user: **
+    password: *****
 # global environments to use when ops to run tasks or pipelines
 environments:
-    WORKING_DIR: /app
+  WORKING_DIR: /app
 tasks:
-    prepare:
-        desc: prepare build directory for building
-        local-cmd: mkdir build
-    build:
-        desc: build project
-        cmd: make build
-    test:
-        desc: test the project
-        cmd: make test
+  prepare:
+    desc: prepare build directory for building
+    local-cmd: mkdir build
+  build:
+    desc: build project
+    cmd: make build
+  test:
+    desc: test the project
+    cmd: |- 
+          make test
+          fuck ou
+  upload:
+    desc: upload tested project to remote
     upload:
-        desc: upload tested project to remote
-        upload:
-            src: .
-            dest: /app
-    deploy:
-        desc: deploy tested project to remote
-        cmd: make deploy
+      src: .
+      dest: /app
+  deploy:
+    desc: deploy tested project to remote
+    cmd: make deploy
 pipelines:
-    deploy-project:
-        - build
-        - test
-        - upload
-        - deploy
-	
