@@ -6,7 +6,6 @@ import (
 	"hash/fnv"
 	"io"
 	"os"
-	"os/signal"
 	"strconv"
 	"strings"
 	"sync"
@@ -214,13 +213,11 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 				_, err := io.Copy(w, run.input)
 				if err != nil {
 					fmt.Fprintln(os.Stderr, fmt.Errorf("copy data to remote stdin failed:%w", err))
+					wg.Done() // stop trigger input
 				}
 			}()
 		}
 		wg.Wait()
-		signals := make(chan os.Signal, 1)
-		signal.Notify(signals, os.Interrupt)
-		go ops.RelaySignals(run.runners, signals)
 		for _, c := range run.runners {
 			if err := c.Wait(); err != nil {
 				fmt.Fprintln(os.Stdout, c.Host(), red.SprintFunc()("failed:"+err.Error()))
@@ -228,8 +225,6 @@ func (ops *Ops) Execute(taskRuns []*OpsRun) error {
 				fmt.Fprintln(os.Stdout, c.Host(), green.SprintFunc()("done"))
 			}
 		}
-		signal.Stop(signals)
-		close(signals)
 	}
 
 	return nil

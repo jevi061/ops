@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/signal"
 
 	"github.com/jevi061/ops/internal/ops"
 	"github.com/spf13/cobra"
@@ -72,15 +73,16 @@ func NewRunCmd() *cobra.Command {
 			if !quiet {
 				o.AlignAndColorRunnersPromets(runners)
 			}
+			// relay signals to runners
+			signals := make(chan os.Signal, 1)
+			signal.Notify(signals, os.Interrupt)
+			go o.RelaySignals(runners, signals)
+			defer func() {
+				signal.Stop(signals)
+				close(signals)
+			}()
 			if err := o.Execute(taskRuns); err != nil {
-				var (
-					te *ops.RunError
-				)
-				if errors.As(err, &te) {
-					fmt.Fprintln(os.Stderr, "TASK ERROR:", err)
-				} else {
-					fmt.Fprintln(os.Stderr, err)
-				}
+				fmt.Fprintln(os.Stderr, "TASK ERROR:", err)
 				os.Exit(1)
 			}
 		},

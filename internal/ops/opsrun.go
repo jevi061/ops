@@ -104,6 +104,7 @@ func pipeFiles(src string) (io.Reader, func(), error) {
 	if _, err := os.Stat(src); err != nil {
 		return nil, nil, fmt.Errorf("unable to tar: %s :%w", src, err)
 	}
+
 	pr, pw := io.Pipe()
 	trigger := func() {
 		defer pw.Close()
@@ -111,6 +112,7 @@ func pipeFiles(src string) (io.Reader, func(), error) {
 		defer gzipw.Close()
 		tw := tar.NewWriter(gzipw)
 		defer tw.Close()
+
 		// walk path
 		err := filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
 			// fmt.Println("upload file:", file, "src:", src)
@@ -158,6 +160,7 @@ func pipeFiles(src string) (io.Reader, func(), error) {
 		if err != nil {
 			fmt.Fprintln(os.Stderr, err)
 		}
+
 	}
 	return pr, trigger, nil
 
