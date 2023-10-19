@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -82,6 +81,10 @@ func NewSShCommand() *cobra.Command {
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "open remote std in failed:", err)
 				os.Exit(1)
+			} else {
+				go func() {
+					io.Copy(inPipe, os.Stdin)
+				}()
 			}
 			if errPipe, err := session.StderrPipe(); err != nil {
 				fmt.Fprintln(os.Stderr, "open remote stderr failed:", err)
@@ -111,15 +114,6 @@ func NewSShCommand() *cobra.Command {
 						session.Signal(ssh.SIGQUIT)
 					case syscall.SIGHUP:
 						session.Signal(ssh.SIGHUP)
-					}
-				}
-			}()
-			input := bufio.NewReader(os.Stdin)
-			go func() {
-				for {
-					str, _ := input.ReadString('\n')
-					if _, err := fmt.Fprint(inPipe, str); err != nil {
-						os.Exit(1)
 					}
 				}
 			}()
