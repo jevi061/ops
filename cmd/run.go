@@ -23,17 +23,7 @@ func NewRunCmd() *cobra.Command {
 		Short: "Run tasks or pipelines",
 		Long:  `Run tasks or pipelines defined in Opsfile,eg: ops run task1 task2 pipeline1`,
 		Run: func(cmd *cobra.Command, args []string) {
-			_, err := os.Stat(opsfile)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			data, err := os.ReadFile(opsfile)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-				os.Exit(1)
-			}
-			conf, err := ops.NewOpsfile(data)
+			conf, err := ops.NewOpsfileFromPath(opsfile)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)

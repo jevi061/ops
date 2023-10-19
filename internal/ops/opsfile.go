@@ -2,6 +2,7 @@ package ops
 
 import (
 	"fmt"
+	"os"
 
 	"gopkg.in/yaml.v3"
 )
@@ -132,4 +133,16 @@ func NewOpsfile(data []byte) (*Opsfile, error) {
 		file.Pipelines = &Pipelines{Names: map[string][]string{}}
 	}
 	return &file, nil
+}
+
+func NewOpsfileFromPath(path string) (*Opsfile, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+	if data, err := os.ReadFile(path); err != nil {
+		return nil, err
+	} else {
+		conf, err := NewOpsfile(data)
+		return conf, err
+	}
 }

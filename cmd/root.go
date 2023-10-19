@@ -18,6 +18,7 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(NewSShCommand())
 	rootCmd.AddCommand(NewInitCmd())
 	rootCmd.AddCommand(NewRunCmd())
 	if err := rootCmd.Execute(); err != nil {
