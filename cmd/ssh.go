@@ -60,7 +60,9 @@ func NewSShCommand() *cobra.Command {
 			}
 			defer session.Close()
 			modes := ssh.TerminalModes{
-				ssh.ECHO: 0, // disable echoing
+				ssh.ECHO:          0, // disable echoing
+				ssh.TTY_OP_ISPEED: 14400,
+				ssh.TTY_OP_OSPEED: 14400,
 			}
 			w, h, _ := term.GetSize(int(os.Stdout.Fd()))
 			// Request pseudo terminal
@@ -113,11 +115,16 @@ func NewSShCommand() *cobra.Command {
 				}
 			}()
 			input := bufio.NewReader(os.Stdin)
-			for {
-				str, _ := input.ReadString('\n')
-				if _, err := fmt.Fprint(inPipe, str); err != nil {
-					os.Exit(1)
+			go func() {
+				for {
+					str, _ := input.ReadString('\n')
+					if _, err := fmt.Fprint(inPipe, str); err != nil {
+						os.Exit(1)
+					}
 				}
+			}()
+			if err := session.Wait(); err != nil {
+				fmt.Println("failed:", err)
 			}
 
 		},
