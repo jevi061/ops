@@ -20,8 +20,8 @@ func NewSShCommand() *cobra.Command {
 	var sshCmd = &cobra.Command{
 		Use:   "ssh",
 		Args:  cobra.MatchAll(cobra.MaximumNArgs(1), cobra.MinimumNArgs(1)),
-		Short: "Open a shell to target remote computer",
-		Long:  `Open a shell through ssh to remote computer,eg: ops ssh www.example.com`,
+		Short: "Open a shell to target remote server",
+		Long:  `Open a shell through ssh to remote server,eg: ops ssh www.example.com`,
 		Run: func(cmd *cobra.Command, args []string) {
 			host := args[0]
 			conf, err := ops.NewOpsfileFromPath(ofile)
@@ -31,7 +31,7 @@ func NewSShCommand() *cobra.Command {
 			}
 			c, ok := conf.Servers.Names[host]
 			if !ok {
-				fmt.Fprintln(os.Stderr, "No computer matched to :", host, "in", ofile)
+				fmt.Fprintln(os.Stderr, "No server host matched to :", host, "in", ofile)
 				os.Exit(1)
 			}
 			config := &ssh.ClientConfig{
@@ -68,7 +68,7 @@ func NewSShCommand() *cobra.Command {
 			}
 			defer term.Restore(fd, originalState)
 			termWidth, termHeight, _ := term.GetSize(fd)
-			if err := session.RequestPty("xterm-256color", termHeight, termWidth, modes); err != nil {
+			if err := session.RequestPty("xterm", termHeight, termWidth, modes); err != nil {
 				fmt.Fprintln(os.Stderr, "request pty to :", host, "failed:", err)
 				os.Exit(1)
 			}
@@ -102,7 +102,7 @@ func NewSShCommand() *cobra.Command {
 				os.Exit(1)
 			}
 			if err := session.Wait(); err != nil {
-				fmt.Println("failed:", err)
+				fmt.Fprintln(os.Stderr, err)
 			}
 		},
 	}
