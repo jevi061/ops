@@ -29,13 +29,13 @@ func NewRunCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			o := ops.NewOps(conf, ops.WithDebug(!quiet))
-			selected := make([]*ops.Computer, 0)
+			selected := make([]*ops.Server, 0)
 			if tag == "" {
-				for _, v := range conf.Computers.Names {
+				for _, v := range conf.Servers.Names {
 					selected = append(selected, v)
 				}
 			} else {
-				for _, v := range conf.Computers.Names {
+				for _, v := range conf.Servers.Names {
 					for _, t := range v.Tags {
 						if t == tag {
 							selected = append(selected, v)

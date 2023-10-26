@@ -11,38 +11,38 @@ import (
 func NewInitCmd() *cobra.Command {
 	var opsfile = "./Opsfile.yml"
 	const base = `
-computers:
-    www.example.com:
-        port: 22
-        user: root
-        password: ******
+servers:
+  - host: www.example.com
+    port: 22
+    user: root
+    password: ******
 # global environments to use when ops to run tasks or pipelines
 environments:
     WORKING_DIR: /app
 tasks:
-    prepare:
-        desc: prepare build directory for building
-        local-cmd: mkdir build
-    build:
-        desc: build project
-        cmd: make build
-    test:
-        desc: test the project
-        cmd: make test
+  prepare:
+    desc: prepare build directory for building
+    local-cmd: mkdir build
+  build:
+    desc: build project
+    cmd: make build
+  test:
+    desc: test the project
+    cmd: make test
+  upload:
+    desc: upload tested project to remote
     upload:
-        desc: upload tested project to remote
-        upload:
-            src: .
-            dest: /app
-    deploy:
-        desc: deploy tested project to remote
-        cmd: make deploy
+      src: .
+      dest: /app
+  deploy:
+    desc: deploy tested project to remote
+    cmd: make deploy
 pipelines:
-    deploy-project:
-        - build
-        - test
-        - upload
-        - deploy
+  deploy-project:
+    - build
+    - test
+    - upload
+	- deploy
 	`
 	var initCmd = &cobra.Command{
 		Use:   "init",

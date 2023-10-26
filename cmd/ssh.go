@@ -29,7 +29,7 @@ func NewSShCommand() *cobra.Command {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			c, ok := conf.Computers.Names[host]
+			c, ok := conf.Servers.Names[host]
 			if !ok {
 				fmt.Fprintln(os.Stderr, "No computer matched to :", host, "in", ofile)
 				os.Exit(1)

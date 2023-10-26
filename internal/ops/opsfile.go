@@ -8,15 +8,15 @@ import (
 )
 
 type Opsfile struct {
-	Computers    *Computers    `yaml:"computers"`
+	Servers      *Servers      `yaml:"servers"`
 	Tasks        *Tasks        `yaml:"tasks"`
 	Pipelines    *Pipelines    `yaml:"pipelines"`
 	Environments *Environments `yaml:"environments"`
 }
-type Computers struct {
-	Names map[string]*Computer
+type Servers struct {
+	Names map[string]*Server
 }
-type Computer struct {
+type Server struct {
 	Host     string   `yaml:"host"`
 	Port     uint     `yaml:"port"`
 	User     string   `yaml:"user"`
@@ -24,22 +24,19 @@ type Computer struct {
 	Tags     []string `yaml:"tags"`
 }
 
-func (c *Computers) UnmarshalYAML(node *yaml.Node) error {
+func (c *Servers) UnmarshalYAML(node *yaml.Node) error {
 
-	//fmt.Println("node line:", node.Line, "node kind:", node.Kind, "node value:", node.Value)
-	if node.Kind != yaml.MappingNode {
-		return fmt.Errorf("%d:%d require mappings for computer", node.Line, node.Column)
+	if node.Kind != yaml.SequenceNode {
+		return fmt.Errorf("%d:%d require sequence node for servers", node.Line, node.Column)
 	}
-	var hosts map[string]*Computer
-	if err := node.Decode(&hosts); err != nil {
+	var servers []*Server
+	if err := node.Decode(&servers); err != nil {
 		return err
 	}
-	c.Names = hosts
-	for k, v := range c.Names {
-		if v == nil {
-			c.Names[k] = &Computer{Host: k}
-		} else {
-			v.Host = k
+	c.Names = make(map[string]*Server)
+	for _, v := range servers {
+		if v != nil {
+			c.Names[v.Host] = v
 		}
 	}
 	return nil

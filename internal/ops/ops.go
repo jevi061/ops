@@ -61,10 +61,10 @@ func (ce *ConnectError) Error() string {
 func (pe *ParseError) Error() string {
 	return pe.Err.Error()
 }
-func (ops *Ops) PrepareOpsRuns(computers []*Computer, pipelines []string) ([]*OpsRun, error) {
+func (ops *Ops) PrepareOpsRuns(servers []*Server, pipelines []string) ([]*OpsRun, error) {
 	// prepare runners for computers
 	runners := make([]runner.Runner, 0)
-	for _, c := range computers {
+	for _, c := range servers {
 		runners = append(runners, runner.NewSSHRunner(c.Host,
 			runner.WithPort(c.Port), runner.WithUser(c.User), runner.WithPassword(c.Password)))
 	}
