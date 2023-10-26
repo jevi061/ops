@@ -1,12 +1,9 @@
 package cmd
 
 import (
-	"bufio"
 	"fmt"
 	"io"
 	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/jevi061/ops/internal/ops"
@@ -26,8 +23,6 @@ func NewSShCommand() *cobra.Command {
 		Short: "Open a shell to target remote computer",
 		Long:  `Open a shell through ssh to remote computer,eg: ops ssh www.example.com`,
 		Run: func(cmd *cobra.Command, args []string) {
-			// Do Stuff Here
-
 			host := args[0]
 			conf, err := ops.NewOpsfileFromPath(ofile)
 			if err != nil {
@@ -60,13 +55,20 @@ func NewSShCommand() *cobra.Command {
 			}
 			defer session.Close()
 			modes := ssh.TerminalModes{
-				ssh.ECHO:          0, // disable echoing
-				ssh.TTY_OP_ISPEED: 14400,
-				ssh.TTY_OP_OSPEED: 14400,
+				ssh.ECHO:          1,     // enable echoing
+				ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+				ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 			}
-			w, h, _ := term.GetSize(int(os.Stdout.Fd()))
-			// Request pseudo terminal
-			if err := session.RequestPty("xterm", h, w, modes); err != nil {
+
+			fd := int(os.Stdin.Fd())
+
+			originalState, err := term.MakeRaw(fd)
+			if err != nil {
+				os.Exit(1)
+			}
+			defer term.Restore(fd, originalState)
+			termWidth, termHeight, _ := term.GetSize(fd)
+			if err := session.RequestPty("xterm-256color", termHeight, termWidth, modes); err != nil {
 				fmt.Fprintln(os.Stderr, "request pty to :", host, "failed:", err)
 				os.Exit(1)
 			}
@@ -84,16 +86,7 @@ func NewSShCommand() *cobra.Command {
 				os.Exit(1)
 			} else {
 				go func() {
-					reader := bufio.NewReader(os.Stdin)
-					for {
-						if data, err := reader.ReadBytes('\n'); err != nil {
-							os.Exit(1)
-						} else {
-							if _, err = inPipe.Write(data[0 : len(data)-1]); err != nil {
-								os.Exit(1)
-							}
-						}
-					}
+					io.Copy(inPipe, os.Stdin)
 				}()
 			}
 			if errPipe, err := session.StderrPipe(); err != nil {
@@ -108,29 +101,9 @@ func NewSShCommand() *cobra.Command {
 				fmt.Fprintln(os.Stderr, "open session to :", host, "failed:", err)
 				os.Exit(1)
 			}
-			go func() {
-				signals := make(chan os.Signal, 1)
-				signal.Notify(signals, os.Interrupt, syscall.SIGHUP, syscall.SIGQUIT)
-				for {
-					sig, ok := <-signals
-					if !ok {
-						return
-					}
-					switch sig {
-					case syscall.SIGINT:
-						inPipe.Write([]byte("\x03"))
-						session.Signal(ssh.SIGINT)
-					case syscall.SIGQUIT:
-						session.Signal(ssh.SIGQUIT)
-					case syscall.SIGHUP:
-						session.Signal(ssh.SIGHUP)
-					}
-				}
-			}()
 			if err := session.Wait(); err != nil {
 				fmt.Println("failed:", err)
 			}
-
 		},
 	}
 	sshCmd.PersistentFlags().StringVarP(&ofile, "opsfile", "f", "./Opsfile.yml", "opsfile")
