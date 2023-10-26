@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -83,7 +84,16 @@ func NewSShCommand() *cobra.Command {
 				os.Exit(1)
 			} else {
 				go func() {
-					io.Copy(inPipe, os.Stdin)
+					reader := bufio.NewReader(os.Stdin)
+					for {
+						if data, err := reader.ReadBytes('\n'); err != nil {
+							os.Exit(1)
+						} else {
+							if _, err = inPipe.Write(data[0 : len(data)-1]); err != nil {
+								os.Exit(1)
+							}
+						}
+					}
 				}()
 			}
 			if errPipe, err := session.StderrPipe(); err != nil {
