@@ -18,10 +18,10 @@ var (
 
 func NewRunCmd() *cobra.Command {
 	var runCmd = &cobra.Command{
-		Use:   "run [task|pipeline...]",
+		Use:   "run TASK...",
 		Args:  cobra.MatchAll(cobra.MinimumNArgs(1)),
-		Short: "Run tasks or pipelines",
-		Long:  `Run tasks or pipelines defined in Opsfile,eg: ops run task1 task2 pipeline1`,
+		Short: "Run tasks",
+		Long:  `Run tasks defined in Opsfile,eg: ops run task1 task2 ...`,
 		Run: func(cmd *cobra.Command, args []string) {
 			conf, err := ops.NewOpsfileFromPath(opsfile)
 			if err != nil {
@@ -29,21 +29,21 @@ func NewRunCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			o := ops.NewOps(conf, ops.WithDebug(!quiet))
-			selected := make([]*ops.Server, 0)
+			selectedServers := make([]*ops.Server, 0)
 			if tag == "" {
 				for _, v := range conf.Servers.Names {
-					selected = append(selected, v)
+					selectedServers = append(selectedServers, v)
 				}
 			} else {
 				for _, v := range conf.Servers.Names {
 					for _, t := range v.Tags {
 						if t == tag {
-							selected = append(selected, v)
+							selectedServers = append(selectedServers, v)
 						}
 					}
 				}
 			}
-			taskRuns, err := o.PrepareOpsRuns(selected, args)
+			taskRuns, err := o.PrepareTaskRuns(selectedServers, args)
 			if err != nil {
 				var pe *ops.ParseError
 				if errors.As(err, &pe) {

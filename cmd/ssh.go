@@ -18,20 +18,20 @@ var (
 
 func NewSShCommand() *cobra.Command {
 	var sshCmd = &cobra.Command{
-		Use:   "ssh",
+		Use:   "ssh SERVER_NAME",
 		Args:  cobra.MatchAll(cobra.MaximumNArgs(1), cobra.MinimumNArgs(1)),
 		Short: "Open a shell to target remote server",
 		Long:  `Open a shell through ssh to remote server,eg: ops ssh www.example.com`,
 		Run: func(cmd *cobra.Command, args []string) {
-			host := args[0]
+			serverName := args[0]
 			conf, err := ops.NewOpsfileFromPath(ofile)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			c, ok := conf.Servers.Names[host]
+			c, ok := conf.Servers.Names[serverName]
 			if !ok {
-				fmt.Fprintln(os.Stderr, "No server host matched to :", host, "in", ofile)
+				fmt.Fprintln(os.Stderr, "No server name matched to :", serverName, "in", ofile)
 				os.Exit(1)
 			}
 			config := &ssh.ClientConfig{
@@ -44,13 +44,13 @@ func NewSShCommand() *cobra.Command {
 			}
 			conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", c.Host, c.Port), config)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "connect to :", host, "failed:", err)
+				fmt.Fprintln(os.Stderr, "connect to :", serverName, "failed:", err)
 				os.Exit(1)
 			}
 			defer conn.Close()
 			session, err := conn.NewSession()
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "open session to :", host, "failed:", err)
+				fmt.Fprintln(os.Stderr, "open session to :", serverName, "failed:", err)
 				os.Exit(1)
 			}
 			defer session.Close()
@@ -69,7 +69,7 @@ func NewSShCommand() *cobra.Command {
 			defer term.Restore(fd, originalState)
 			termWidth, termHeight, _ := term.GetSize(fd)
 			if err := session.RequestPty("xterm", termHeight, termWidth, modes); err != nil {
-				fmt.Fprintln(os.Stderr, "request pty to :", host, "failed:", err)
+				fmt.Fprintln(os.Stderr, "request pty to :", serverName, "failed:", err)
 				os.Exit(1)
 			}
 			if outPipe, err := session.StdoutPipe(); err != nil {
@@ -98,7 +98,7 @@ func NewSShCommand() *cobra.Command {
 				}()
 			}
 			if err := session.Shell(); err != nil {
-				fmt.Fprintln(os.Stderr, "open session to :", host, "failed:", err)
+				fmt.Fprintln(os.Stderr, "open session to :", serverName, "failed:", err)
 				os.Exit(1)
 			}
 			if err := session.Wait(); err != nil {

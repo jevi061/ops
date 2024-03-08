@@ -3,6 +3,7 @@ package ops
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -10,7 +11,6 @@ import (
 type Opsfile struct {
 	Servers      *Servers      `yaml:"servers"`
 	Tasks        *Tasks        `yaml:"tasks"`
-	Pipelines    *Pipelines    `yaml:"pipelines"`
 	Environments *Environments `yaml:"environments"`
 }
 type Servers struct {
@@ -26,18 +26,12 @@ type Server struct {
 
 func (c *Servers) UnmarshalYAML(node *yaml.Node) error {
 
-	if node.Kind != yaml.SequenceNode {
-		return fmt.Errorf("%d:%d require sequence node for servers", node.Line, node.Column)
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("yaml: line: %d require sequence node for servers", node.Line)
 	}
-	var servers []*Server
-	if err := node.Decode(&servers); err != nil {
+	c.Names = make(map[string]*Server, 0)
+	if err := node.Decode(&c.Names); err != nil {
 		return err
-	}
-	c.Names = make(map[string]*Server)
-	for _, v := range servers {
-		if v != nil {
-			c.Names[v.Host] = v
-		}
 	}
 	return nil
 }
@@ -57,6 +51,7 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 	t.Names = tasks
 	for k, v := range t.Names {
 		if v != nil {
+			v.Cmd = strings.TrimSpace(v.Cmd)
 			v.Name = k
 		}
 	}
@@ -64,46 +59,12 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 }
 
 type Task struct {
-	Name     string            `yaml:"name"`
-	Cmd      string            `yaml:"cmd"`
-	Desc     string            `yaml:"desc"`
-	LocalCmd string            `yaml:"local-cmd"`
-	Upload   *Upload           `yaml:"upload"`
-	Download *Upload           `yaml:"download"`
-	Envs     map[string]string `yaml:"environments"`
-}
-type Upload struct {
-	Src  string `yaml:"src"`
-	Dest string `yaml:"dest"`
-}
-
-func (t *Task) AsCmdLine() string {
-	if t.Cmd != "" {
-		return t.Cmd
-	}
-	if t.LocalCmd != "" {
-		return t.LocalCmd
-	}
-	return ""
-}
-
-type Pipelines struct {
-	Names map[string][]string
-}
-
-func (p *Pipelines) UnmarshalYAML(node *yaml.Node) error {
-	if node.Kind != yaml.MappingNode {
-		return fmt.Errorf("%d:%d require mappings for pipelines", node.Line, node.Column)
-	}
-	p.Names = make(map[string][]string, 0)
-	var pipes map[string][]string
-	if err := node.Decode(&pipes); err != nil {
-		return err
-	}
-	if len(pipes) > 0 {
-		p.Names = pipes
-	}
-	return nil
+	Name  string            `yaml:"name"`
+	Cmd   string            `yaml:"cmd"`
+	Desc  string            `yaml:"desc"`
+	Local bool              `yaml:"local"`
+	Envs  map[string]string `yaml:"environments"`
+	Deps  []string          `yaml:"deps"`
 }
 
 type Environments struct {
@@ -125,9 +86,6 @@ func NewOpsfile(data []byte) (*Opsfile, error) {
 	var file Opsfile
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
-	}
-	if file.Pipelines == nil {
-		file.Pipelines = &Pipelines{Names: map[string][]string{}}
 	}
 	return &file, nil
 }

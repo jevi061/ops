@@ -3,12 +3,13 @@ package runner
 import (
 	"errors"
 	"fmt"
-	"github.com/rs/xid"
-	"golang.org/x/crypto/ssh"
-	"golang.org/x/term"
 	"io"
 	"os"
 	"time"
+
+	"github.com/rs/xid"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/term"
 )
 
 type SSHRunner struct {
@@ -67,7 +68,7 @@ func (r *SSHRunner) Connect() error {
 	r.conn = conn
 	return nil
 }
-func (r *SSHRunner) Run(job *Job, input io.Reader) error {
+func (r *SSHRunner) Run(tr TaskRun) error {
 
 	if r.sessionOpened {
 		return errors.New("another seesion is using")
@@ -90,13 +91,13 @@ func (r *SSHRunner) Run(job *Job, input io.Reader) error {
 	if err != nil {
 		return err
 	}
-	for k, v := range job.Envs {
+	for k, v := range tr.Environments() {
 		r.session.Setenv(k, v)
 	}
 	if r.debug {
-		fmt.Printf("%s%s\n", r.Promet(), job.Cmd)
+		fmt.Printf("%s%s\n", r.Promet(), tr.Command())
 	}
-	if input == nil {
+	if tr.Stdin() == nil {
 		// request pty
 		// Set up terminal modes
 		modes := ssh.TerminalModes{
@@ -109,7 +110,7 @@ func (r *SSHRunner) Run(job *Job, input io.Reader) error {
 		}
 	}
 
-	if err := r.session.Start(job.Cmd); err != nil {
+	if err := r.session.Start(tr.Command()); err != nil {
 		return err
 	}
 	r.sessionOpened = true

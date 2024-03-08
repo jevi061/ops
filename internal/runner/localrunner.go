@@ -53,7 +53,7 @@ func (r *LocalRunner) Stderr() io.Reader {
 	return r.stderr
 }
 
-func (r *LocalRunner) Run(c *Job, input io.Reader) error {
+func (r *LocalRunner) Run(tr TaskRun) error {
 	if r.running {
 		return errors.New("runner is already running")
 	}
@@ -62,9 +62,9 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 	if runtime.GOOS != "windows" {
 		shell, flag = "bash", "-c"
 	}
-	cmd := exec.Command(shell, flag, c.Cmd)
+	cmd := exec.Command(shell, flag, tr.Command())
 	jenvs := make([]string, 0)
-	for k, v := range c.Envs {
+	for k, v := range tr.Environments() {
 		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
 	}
 	cmd.Env = append(os.Environ(), jenvs...)
@@ -85,7 +85,7 @@ func (r *LocalRunner) Run(c *Job, input io.Reader) error {
 		return err
 	}
 	if r.debug {
-		fmt.Printf("%s%s %s %s\n", r.Promet(), shell, flag, c.Cmd)
+		fmt.Printf("%s%s %s %s\n", r.Promet(), shell, flag, tr.Command())
 	}
 	if err := r.exec.Start(); err != nil {
 		return err
