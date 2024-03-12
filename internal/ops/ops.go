@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 	"github.com/jevi061/ops/internal/runner"
 )
 
@@ -121,8 +121,8 @@ func (ops *Ops) SetRunnersRunningMode(runners []runner.Runner, debug bool) {
 func (ops *Ops) AlignAndColorRunnersPromets(runners []runner.Runner) {
 	//fmt.Println("align runners promets")
 	// align and color runners promets
-	colors := []func(a ...interface{}) string{color.New(color.FgBlack).SprintFunc(), color.New(color.FgYellow).SprintFunc(),
-		color.New(color.FgMagenta).SprintFunc(), color.New(color.FgCyan).SprintFunc()}
+	colors := []func(a ...interface{}) string{color.Yellow.Render, color.Cyan.Render,
+		color.Magenta.Render, color.Blue.Render}
 	max := 0
 
 	for _, r := range runners {

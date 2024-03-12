@@ -11,7 +11,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 	"github.com/jevi061/ops/internal/prefixer"
 	"github.com/jevi061/ops/internal/runner"
 	"golang.org/x/term"
@@ -187,8 +187,8 @@ func pipeFiles(src string) (io.Reader, error) {
 
 // Run execute internal task
 func (tr *CrossplatformTaskRun) Run() error {
-	green, blue, red := color.New(color.FgHiGreen).Add(color.Bold), color.New(color.FgBlue).Add(color.Bold), color.New(color.FgRed)
-	blue.Fprintln(os.Stdout, fmt.Sprintf("Task: [%s] %s", tr.task.Name, tr.task.Desc))
+	gray := color.Gray.Render
+	fmt.Printf("%s: [%s] %s\n", "Task", tr.task.Name, gray(tr.task.Desc))
 	w, _, err := term.GetSize(int(os.Stdout.Fd()))
 	if err != nil {
 		panic(err)
@@ -234,11 +234,10 @@ func (tr *CrossplatformTaskRun) Run() error {
 	wg.Wait()
 	for _, c := range tr.runners {
 		if err := c.Wait(); err != nil {
-			fmt.Fprintln(os.Stdout, c.Host(), red.SprintFunc()("failed:"+err.Error()))
+			color.Redf("[%s]: failed:%s\n", c.Host(), err.Error())
 		} else {
-			fmt.Fprintln(os.Stdout, c.Host(), green.SprintFunc()("done"))
+			color.Greenf("[%s]: ok\n", c.Host())
 		}
-		fmt.Println("runner:", c.Host(), "finished")
 	}
 	return nil
 }
