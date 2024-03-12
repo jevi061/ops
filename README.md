@@ -1,27 +1,33 @@
 ## Ops
 
-A simple pipeline tool that allows you to:
-- run shell commands on local or remote ssh servers
-- transfer files or directories to remotes
+A simple pipeline tool that allows you to run shell commands on local or remote ssh servers.
+
 
 ## Installation
 
 ```shell
 $ go install github.com/jevi061/ops@latest
 ```
+
+## Features
+
+- run commands/scripts on local machine or remote server.
+- transfer files/directories between local and remote servers.
+
 ## Usage
 
 ```shell
-$ ops run [task|pipeline...] [flags]
+$ ops run TASK... [flags]
 ```
 ## Concepts
 
 #### Opsfile
-The manifest file for instructing ops to run, in which you can define target servers,tasks, and pipelines .
+The manifest file for instructing ops to run, in which you can define target servers,tasks, and environments .
 When ops starts to run, it looks for the file in the current directory. You can also set the path of Opsfile using flag -f or --opsfile.
 ```yaml
 servers:
-  - www.example.com
+  example:
+    host: www.example.com
     port: 22
     user: root
     password: ******
@@ -31,7 +37,8 @@ environments:
 tasks:
   prepare:
     desc: prepare build directory for building
-    local-cmd: mkdir build
+    cmd: mkdir build
+    local: true
   build:
     desc: build project
     cmd: make build
@@ -40,23 +47,21 @@ tasks:
     cmd: make test
   upload:
     desc: upload tested project to remote
-    upload:
-      src: .
-      dest: /app
+    cmd: src -> dst
   deploy:
     desc: deploy tested project to remote
     cmd: make deploy
-pipelines:
-  deploy-project:
-    - build
-    - test
-    - upload
-    - deploy
+    deps:
+      - prepare
+      - build
+      - test
+      - upload
+
 ```
 
 #### Servers
 
-Visitable Servers where tasks or pipelines to run on. As ops using ssh underline, servers must have sshd run and be available to visit.
+Visitable Servers where tasks to run on. As ops using ssh underline, servers must have sshd run and be available to visit.
 
 #### Tasks
 
@@ -65,11 +70,9 @@ Simple abstract of shell commands, which you can run on servers. Here are 3 supp
 - local-cmd commands to run on the current local computer
 - upload transfer files or directories to remote computers
 
-Each task could have its own environments defined under the task section in Opsfile, and task-associated environments will override global environments when conflicts
+Each task could have its own environments defined under the task section in Opsfile, and task-associated environments will override global environments when conflicts.
 
-#### Pipelines
 
-Series of tasks to run.
 
 # Licence
 
