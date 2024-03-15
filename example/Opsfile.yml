@@ -27,4 +27,3 @@ tasks:
   deploy:
     desc: deploy tested project to remote
     cmd: make deploy
-pipelines:

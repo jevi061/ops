@@ -2,14 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"time"
 
+	"github.com/containerd/console"
 	"github.com/jevi061/ops/internal/ops"
 	"github.com/spf13/cobra"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/term"
 )
 
 var (
@@ -54,49 +53,39 @@ func NewSShCommand() *cobra.Command {
 				os.Exit(1)
 			}
 			defer session.Close()
+			session.Stdout = os.Stdout
+			session.Stderr = os.Stderr
+			session.Stdin = os.Stdin
 			modes := ssh.TerminalModes{
-				ssh.ECHO:          1,     // enable echoing
+				ssh.ECHO:          1, // enable echoing
+				ssh.ECHOCTL:       0,
 				ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
 				ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+				ssh.VSTATUS:       1,
 			}
+			current := console.Current()
+			defer current.Reset()
 
-			fd := int(os.Stdin.Fd())
-
-			originalState, err := term.MakeRaw(fd)
-			if err != nil {
+			if err := current.SetRaw(); err != nil {
+				fmt.Fprintln(os.Stderr, "make current console in raw mode failed:", err)
 				os.Exit(1)
 			}
-			defer term.Restore(fd, originalState)
-			termWidth, termHeight, _ := term.GetSize(fd)
-			if err := session.RequestPty("xterm", termHeight, termWidth, modes); err != nil {
+			ws, err := current.Size()
+			if err != nil {
+				fmt.Fprintln(os.Stderr, "get current console size failed:", err)
+				os.Exit(1)
+			}
+			current.Resize(ws)
+
+			term := os.Getenv("TERM")
+			if term == "" {
+				term = "xterm-256color"
+			}
+			if err := session.RequestPty(term, int(ws.Height), int(ws.Width), modes); err != nil {
 				fmt.Fprintln(os.Stderr, "request pty to :", serverName, "failed:", err)
 				os.Exit(1)
 			}
-			if outPipe, err := session.StdoutPipe(); err != nil {
-				fmt.Fprintln(os.Stderr, "open remote stdout failed:", err)
-				os.Exit(1)
-			} else {
-				go func() {
-					io.Copy(os.Stdout, outPipe)
-				}()
-			}
-			inPipe, err := session.StdinPipe()
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "open remote std in failed:", err)
-				os.Exit(1)
-			} else {
-				go func() {
-					io.Copy(inPipe, os.Stdin)
-				}()
-			}
-			if errPipe, err := session.StderrPipe(); err != nil {
-				fmt.Fprintln(os.Stderr, "open remote stderr failed:", err)
-				os.Exit(1)
-			} else {
-				go func() {
-					io.Copy(os.Stderr, errPipe)
-				}()
-			}
+
 			if err := session.Shell(); err != nil {
 				fmt.Fprintln(os.Stderr, "open session to :", serverName, "failed:", err)
 				os.Exit(1)
