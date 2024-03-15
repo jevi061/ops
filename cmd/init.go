@@ -23,7 +23,8 @@ environments:
 tasks:
   prepare:
     desc: prepare build directory for building
-    local-cmd: mkdir build
+    cmd: mkdir build
+	local: true
   build:
     desc: build project
     cmd: make build
