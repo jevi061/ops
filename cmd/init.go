@@ -12,7 +12,8 @@ func NewInitCmd() *cobra.Command {
 	var opsfile = "./Opsfile.yml"
 	const base = `
 servers:
-  - host: www.example.com
+  example:
+    host: www.example.com
     port: 22
     user: root
     password: ******
@@ -31,23 +32,21 @@ tasks:
     cmd: make test
   upload:
     desc: upload tested project to remote
-    upload:
-      src: .
-      dest: /app
+    cmd: . -> /app
   deploy:
     desc: deploy tested project to remote
     cmd: make deploy
-pipelines:
-  deploy-project:
-    - build
-    - test
-    - upload
-	- deploy
+    deps:
+      - prepare
+      - build
+      - test
+      - upload
+
 	`
 	var initCmd = &cobra.Command{
 		Use:   "init",
 		Short: "Init a base Opsfile",
-		Long:  `Init a base Opsfile for define tasks or pipelines`,
+		Long:  `Create an example Opsfile`,
 		Run: func(cmd *cobra.Command, args []string) {
 			_, err := os.Stat(opsfile)
 			if !errors.Is(err, os.ErrNotExist) {

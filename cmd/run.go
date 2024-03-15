@@ -79,6 +79,6 @@ func NewRunCmd() *cobra.Command {
 	}
 	runCmd.PersistentFlags().StringVarP(&tag, "tag", "t", "", "computers tag")
 	runCmd.PersistentFlags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
-	runCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "run task|pipeline in quiet mode")
+	runCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "run tasks in quiet mode")
 	return runCmd
 }

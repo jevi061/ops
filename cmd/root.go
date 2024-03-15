@@ -9,8 +9,8 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "ops",
-	Short: "Simple pipeline tool",
-	Long:  `A simple agentless pipeline tool for deploying applications to unix like systems`,
+	Short: "A Simple pipeline tool",
+	Long:  `A simple pipeline tool that allows you to run shell commands on local or remote ssh servers`,
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Usage()
 	},
