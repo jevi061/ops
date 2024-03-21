@@ -13,7 +13,7 @@ import (
 var (
 	tag     string
 	opsfile string
-	quiet   bool
+	debug   bool
 )
 
 func NewRunCmd() *cobra.Command {
@@ -28,7 +28,7 @@ func NewRunCmd() *cobra.Command {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			o := ops.NewOps(conf, ops.WithDebug(!quiet))
+			o := ops.NewOps(conf, ops.WithDebug(debug))
 			selectedServers := make([]*ops.Server, 0)
 			if tag == "" {
 				for _, v := range conf.Servers.Names {
@@ -59,8 +59,8 @@ func NewRunCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			defer o.CloseRunners(runners)
-			o.SetRunnersRunningMode(runners, !quiet)
-			if !quiet {
+			o.SetRunnersRunningMode(runners, debug)
+			if debug {
 				o.AlignAndColorRunnersPromets(runners)
 			}
 			// relay signals to runners
@@ -84,6 +84,6 @@ func NewRunCmd() *cobra.Command {
 	}
 	runCmd.PersistentFlags().StringVarP(&tag, "tag", "t", "", "computers tag")
 	runCmd.PersistentFlags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
-	runCmd.PersistentFlags().BoolVarP(&quiet, "quiet", "q", false, "run tasks in quiet mode")
+	runCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "run tasks in debug mode")
 	return runCmd
 }
