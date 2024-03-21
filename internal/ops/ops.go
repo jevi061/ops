@@ -1,7 +1,6 @@
 package ops
 
 import (
-	"errors"
 	"fmt"
 	"hash/fnv"
 	"os"
@@ -173,19 +172,15 @@ func (ops *Ops) CloseRunners(runners []runner.Runner) error {
 // RelaySignals realy incoming signals to avaliable runners, it will block until signals chan closed
 func (ops *Ops) RelaySignals(runners []runner.Runner, signals chan os.Signal) error {
 	for {
-
 		sig, ok := <-signals
 		if !ok {
 			return nil
 		}
-
 		for _, r := range runners {
-			fmt.Println("send sig:", sig, "to runner:", r.Host())
 			err := r.Signal(sig)
 			if err != nil {
-				return errors.New("send signal to runner failed")
+				return fmt.Errorf("send signal to runner: [%s] failed", r.Host())
 			}
 		}
-
 	}
 }

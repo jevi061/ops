@@ -66,7 +66,12 @@ func NewRunCmd() *cobra.Command {
 			// relay signals to runners
 			signals := make(chan os.Signal, 1)
 			signal.Notify(signals, os.Interrupt)
-			go o.RelaySignals(runners, signals)
+			go func() {
+				if err := o.RelaySignals(runners, signals); err != nil {
+					fmt.Fprintln(os.Stderr, "RUN ERROR:", err)
+					os.Exit(1)
+				}
+			}()
 			defer func() {
 				signal.Stop(signals)
 				close(signals)
