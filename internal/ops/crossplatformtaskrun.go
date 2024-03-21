@@ -191,11 +191,13 @@ func (tr *CrossplatformTaskRun) Sudo() bool {
 
 // Run execute internal task
 func (tr *CrossplatformTaskRun) Run() error {
+	fmt.Println("")
 	gray := color.Gray.Render
 	bold := color.Bold.Render
 	fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(tr.task.Name), gray(tr.task.Desc))
 	current := console.Current()
-	if ws, err := current.Size(); err != nil {
+	ws, err := current.Size()
+	if err != nil {
 		fmt.Println(strings.Repeat("-", 10))
 	} else {
 		fmt.Println(strings.Repeat("-", int(ws.Width)))
