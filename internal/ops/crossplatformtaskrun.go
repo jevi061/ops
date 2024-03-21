@@ -11,10 +11,10 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/containerd/console"
 	"github.com/gookit/color"
 	"github.com/jevi061/ops/internal/prefixer"
 	"github.com/jevi061/ops/internal/runner"
-	"golang.org/x/term"
 )
 
 // CrossplatformTaskRun is minimum unit of task with target runners for ops to run
@@ -49,7 +49,7 @@ func (tr *CrossplatformTaskRun) Command() string {
 	if strings.Contains(tr.task.Cmd, "->") {
 		cmd := strings.TrimSpace(tr.task.Cmd)
 		feilds := strings.Fields(cmd)
-		return fmt.Sprintf("tar -C %s -xzf -", feilds[2])
+		return fmt.Sprintf(`tar -xvzf - -C %s`, feilds[2])
 	}
 	if tr.task.Cmd != "" {
 		return tr.task.Cmd
@@ -89,18 +89,19 @@ func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (ru
 		vs[k] = v
 	}
 	task.Envs = vs
-	cmd := strings.TrimSpace(task.Cmd)
+	// expand cmd with envs
+	cmd := os.Expand(strings.TrimSpace(task.Cmd), func(s string) string { return task.Envs[s] })
+	task.Cmd = cmd
 	// upload
 	if strings.Contains(cmd, "->") {
 		fields := strings.Fields(cmd)
 		if len(fields) != 3 {
 			return nil, fmt.Errorf("incorrect file transfer syntex,use: LOCAL_SRC -> REMOTE_DIRECTORY ")
 		}
-		src, err := filepath.Abs(fields[0])
+		absSrc, err := filepath.Abs(fields[0])
 		if err != nil {
 			return nil, fmt.Errorf("resolve upload src file path failed:%w", err)
 		}
-		absSrc := os.Expand(src, func(s string) string { return task.Envs[s] })
 		pr, err := pipeFiles(absSrc)
 		if err != nil {
 			return nil, err
@@ -118,7 +119,7 @@ func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (ru
 }
 
 func pipeFiles(src string) (io.Reader, error) {
-	fmt.Println("pipe file:", src)
+	//fmt.Println("pipe file:", src)
 	pr, pw := io.Pipe()
 
 	// ensure the src actually exists before trying to tar it
@@ -184,16 +185,21 @@ func pipeFiles(src string) (io.Reader, error) {
 	return pr, nil
 
 }
+func (tr *CrossplatformTaskRun) Sudo() bool {
+	return tr.task.Sudo
+}
 
 // Run execute internal task
 func (tr *CrossplatformTaskRun) Run() error {
 	gray := color.Gray.Render
-	fmt.Printf("%s: [%s] %s\n", "Task", tr.task.Name, gray(tr.task.Desc))
-	w, _, err := term.GetSize(int(os.Stdout.Fd()))
-	if err != nil {
-		panic(err)
+	bold := color.Bold.Render
+	fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(tr.task.Name), gray(tr.task.Desc))
+	current := console.Current()
+	if ws, err := current.Size(); err != nil {
+		fmt.Println(strings.Repeat("-", 10))
+	} else {
+		fmt.Println(strings.Repeat("-", int(ws.Width)))
 	}
-	fmt.Println(strings.Repeat("-", w))
 	var (
 		wg sync.WaitGroup
 	)

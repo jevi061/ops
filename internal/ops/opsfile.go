@@ -63,6 +63,7 @@ type Task struct {
 	Cmd   string            `yaml:"cmd"`
 	Desc  string            `yaml:"desc"`
 	Local bool              `yaml:"local"`
+	Sudo  bool              `yaml:"sudo"`
 	Envs  map[string]string `yaml:"environments"`
 	Deps  []string          `yaml:"deps"`
 }

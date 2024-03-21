@@ -1,15 +1,16 @@
 package runner
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"time"
 
+	"github.com/containerd/console"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/ssh"
-	"golang.org/x/term"
 )
 
 type SSHRunner struct {
@@ -94,24 +95,37 @@ func (r *SSHRunner) Run(tr TaskRun) error {
 	for k, v := range tr.Environments() {
 		r.session.Setenv(k, v)
 	}
-	if r.debug {
-		fmt.Printf("%s%s\n", r.Promet(), tr.Command())
+	cmd := tr.Command()
+	if tr.Sudo() {
+		cmd = fmt.Sprintf(`sudo -E -p "" -S %s `, cmd)
 	}
-	if tr.Stdin() == nil {
+	if r.debug && tr.Stdin() == nil {
+		fmt.Printf("%s%s\n", r.Promet(), cmd)
 		// request pty
 		// Set up terminal modes
 		modes := ssh.TerminalModes{
-			ssh.ECHO: 0, // disable echoing
+			ssh.ECHO:          0, // enable echoing
+			ssh.ECHOCTL:       0,
+			ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+			ssh.VSTATUS:       1,
 		}
-		w, h, _ := term.GetSize(int(os.Stdout.Fd()))
-		// Request pseudo terminal
-		if err := r.session.RequestPty("xterm", h, w, modes); err != nil {
+		current := console.Current()
+		if ws, err := current.Size(); err != nil {
 			return err
+		} else {
+			// Request pseudo terminal
+			if err := r.session.RequestPty("xterm", int(ws.Height), int(ws.Width), modes); err != nil {
+				return err
+			}
 		}
 	}
 
-	if err := r.session.Start(tr.Command()); err != nil {
+	if err := r.session.Start(cmd); err != nil {
 		return err
+	}
+	if tr.Sudo() {
+		io.Copy(r.stdin, bytes.NewBuffer([]byte(r.password+"\n")))
 	}
 	r.sessionOpened = true
 	return nil

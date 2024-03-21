@@ -64,11 +64,11 @@ func NewSShCommand() *cobra.Command {
 				ssh.VSTATUS:       1,
 			}
 			current := console.Current()
-			defer current.Reset()
-
 			if err := current.SetRaw(); err != nil {
 				fmt.Fprintln(os.Stderr, "make current console in raw mode failed:", err)
 				os.Exit(1)
+			} else {
+				defer current.Reset()
 			}
 			ws, err := current.Size()
 			if err != nil {

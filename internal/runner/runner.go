@@ -12,6 +12,7 @@ type TaskRun interface {
 	Stdin() io.Reader
 	Runners() []Runner
 	Run() error
+	Sudo() bool
 }
 
 // Runner local or remote runner for taskrun to run
