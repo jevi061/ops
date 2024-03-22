@@ -220,16 +220,16 @@ func (tr *CrossplatformTaskRun) Run() error {
 					fmt.Fprintln(os.Stderr, err)
 				}
 			}(r)
+			// copy remote computer's stderr to current
+			wg.Add(1)
+			go func(rn runner.Runner) {
+				defer wg.Done()
+				_, err := io.Copy(os.Stderr, prefixer.NewPrefixReader(rn.Stderr(), rn.Promet()))
+				if err != nil {
+					fmt.Fprintln(os.Stderr, err)
+				}
+			}(r)
 		}
-		// copy remote computer's stderr to current
-		wg.Add(1)
-		go func(rn runner.Runner) {
-			defer wg.Done()
-			_, err := io.Copy(os.Stderr, prefixer.NewPrefixReader(rn.Stderr(), rn.Promet()))
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
-		}(r)
 		if tr.Stdin() != nil {
 			wg.Add(1)
 			go func(rn runner.Runner) {
