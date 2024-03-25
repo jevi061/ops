@@ -26,6 +26,8 @@ type CrossplatformTaskRun struct {
 	//inputTrigger func()    // func to trigger input
 }
 
+var localRunner = runner.NewLocalRunner()
+
 func (tr *CrossplatformTaskRun) MustParse(cmdline string) (string, []string) {
 	var (
 		cmd  string
@@ -112,8 +114,7 @@ func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (ru
 		return nil, errors.New("cant download file now")
 	}
 	if task.Local {
-		r := runner.NewLocalRunner()
-		return &CrossplatformTaskRun{task: task, envs: vs, runners: []runner.Runner{r}}, nil
+		return &CrossplatformTaskRun{task: task, envs: vs, runners: []runner.Runner{localRunner}}, nil
 	}
 	return &CrossplatformTaskRun{task: task, envs: vs, input: nil, runners: runners}, nil
 }
@@ -187,6 +188,9 @@ func pipeFiles(src string) (io.Reader, error) {
 }
 func (tr *CrossplatformTaskRun) Sudo() bool {
 	return tr.task.Sudo
+}
+func (tr *CrossplatformTaskRun) Name() string {
+	return tr.task.Name
 }
 
 // Run execute internal task

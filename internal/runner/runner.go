@@ -13,6 +13,7 @@ type TaskRun interface {
 	Runners() []Runner
 	Run() error
 	Sudo() bool
+	Name() string
 }
 
 // Runner local or remote runner for taskrun to run

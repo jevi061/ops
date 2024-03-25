@@ -54,41 +54,31 @@ func (ce *ConnectError) Error() string {
 func (pe *ParseError) Error() string {
 	return pe.Err.Error()
 }
-func (ops *Ops) PrepareTaskRuns(servers []*Server, tasks []string) ([]runner.TaskRun, error) {
-	// prepare runners for computers
-	runners := make([]runner.Runner, 0)
-	for _, c := range servers {
-		runners = append(runners, runner.NewSSHRunner(c.Host,
-			runner.WithPort(c.Port), runner.WithUser(c.User), runner.WithPassword(c.Password)))
-	}
-	// prepare TaskRuns
+func (ops *Ops) PrepareTaskRuns(taskName string, runners []runner.Runner) ([]runner.TaskRun, error) {
 	runs := make([]runner.TaskRun, 0)
-	for _, t := range tasks {
-		// dependencies
-		if task, ok := ops.conf.Tasks.Names[t]; ok {
-			for _, dep := range task.Deps {
-				if depTask, ok := ops.conf.Tasks.Names[dep]; !ok {
-					return nil, &ParseError{target: dep, Err: fmt.Errorf("task: %s has invalid dependency: %s", t, dep)}
+	// valid task
+	if task, ok := ops.conf.Tasks.Names[taskName]; ok {
+		// deps
+		if len(task.Deps) > 0 {
+			for _, depTaskName := range task.Deps {
+				if depTaskRuns, err := ops.PrepareTaskRuns(depTaskName, runners); err != nil {
+					return nil, fmt.Errorf("ParseTaskError: task: %s has invalid dependency: %s", task.Name, depTaskName)
 				} else {
-					run, err := NewTaskRun(depTask, ops.conf.Environments.Envs, runners)
-					if err != nil {
-						return nil, fmt.Errorf("parse task: %s error:%w", t, err)
-					}
-					runs = append(runs, run)
+					runs = append(runs, depTaskRuns...)
 				}
 			}
-			// task itself
-			run, err := NewTaskRun(task, ops.conf.Environments.Envs, runners)
-			if err != nil {
-				return nil, fmt.Errorf("parse task: %s error:%w", t, err)
-			}
-			runs = append(runs, run)
-		} else {
-			return nil, &ParseError{target: t, Err: fmt.Errorf("%s is not a valid task", t)}
 		}
+		// task itself
+		run, err := NewTaskRun(task, ops.conf.Environments.Envs, runners)
+		if err != nil {
+			return nil, fmt.Errorf("parse task: %s error:%w", taskName, err)
+		}
+		runs = append(runs, run)
+
+	} else { // invalid task
+		return nil, &ParseError{target: taskName, Err: fmt.Errorf("%s is not a valid task", taskName)}
 	}
 	return runs, nil
-
 }
 
 func (ops *Ops) ConnectRunners(runners []runner.Runner) *ConnectError {
@@ -116,6 +106,28 @@ func (ops *Ops) SetRunnersRunningMode(runners []runner.Runner, debug bool) {
 	for _, r := range runners {
 		r.SetDebug(debug)
 	}
+}
+func (ops *Ops) PrepareRunners(servers map[string]*Server, tag string) []runner.Runner {
+	selectedServers := make([]*Server, 0)
+	if tag == "" {
+		for _, v := range servers {
+			selectedServers = append(selectedServers, v)
+		}
+	} else {
+		for _, v := range servers {
+			for _, t := range v.Tags {
+				if t == tag {
+					selectedServers = append(selectedServers, v)
+				}
+			}
+		}
+	}
+	runners := make([]runner.Runner, 0)
+	for _, c := range servers {
+		runners = append(runners, runner.NewSSHRunner(c.Host,
+			runner.WithPort(c.Port), runner.WithUser(c.User), runner.WithPassword(c.Password)))
+	}
+	return runners
 }
 func (ops *Ops) AlignAndColorRunnersPromets(runners []runner.Runner) {
 	//fmt.Println("align runners promets")

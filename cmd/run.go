@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
 
 	"github.com/jevi061/ops/internal/ops"
+	"github.com/jevi061/ops/internal/runner"
 	"github.com/spf13/cobra"
 )
 
@@ -29,29 +29,15 @@ func NewRunCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			o := ops.NewOps(conf, ops.WithDebug(debug))
-			selectedServers := make([]*ops.Server, 0)
-			if tag == "" {
-				for _, v := range conf.Servers.Names {
-					selectedServers = append(selectedServers, v)
-				}
-			} else {
-				for _, v := range conf.Servers.Names {
-					for _, t := range v.Tags {
-						if t == tag {
-							selectedServers = append(selectedServers, v)
-						}
-					}
-				}
-			}
-			taskRuns, err := o.PrepareTaskRuns(selectedServers, args)
-			if err != nil {
-				var pe *ops.ParseError
-				if errors.As(err, &pe) {
-					fmt.Fprintln(os.Stderr, "PARSE ERROR:", err)
-				} else {
+			remoteRunners := o.PrepareRunners(conf.Servers.Names, tag)
+			taskRuns := make([]runner.TaskRun, 0)
+			for _, taskName := range args {
+				if runs, err := o.PrepareTaskRuns(taskName, remoteRunners); err != nil {
 					fmt.Fprintln(os.Stderr, err)
+					os.Exit(1)
+				} else {
+					taskRuns = append(taskRuns, runs...)
 				}
-				os.Exit(1)
 			}
 			runners := o.CollectRunners(taskRuns)
 			if err := o.ConnectRunners(runners); err != nil {
