@@ -11,8 +11,9 @@ import (
 )
 
 type Ops struct {
-	conf  *Opsfile
-	debug bool
+	conf                   *Opsfile
+	debug                  bool
+	preparedExpandableTask map[string]int
 }
 
 type OpsOption func(*Ops)
@@ -25,6 +26,7 @@ func WithDebug(debug bool) OpsOption {
 
 func NewOps(conf *Opsfile, options ...OpsOption) *Ops {
 	ops := &Ops{conf: conf}
+	ops.preparedExpandableTask = make(map[string]int)
 	for _, v := range options {
 		v(ops)
 	}
@@ -60,9 +62,13 @@ func (ops *Ops) PrepareTaskRuns(taskName string, runners []runner.Runner) ([]run
 	if task, ok := ops.conf.Tasks.Names[taskName]; ok {
 		// deps
 		if len(task.Deps) > 0 {
+			ops.preparedExpandableTask[taskName]++
 			for _, depTaskName := range task.Deps {
+				if ops.preparedExpandableTask[taskName] > 1 && len(ops.conf.Tasks.Names[depTaskName].Deps) > 0 {
+					return nil, fmt.Errorf("ParseTaskError: found circular task node: %s", depTaskName)
+				}
 				if depTaskRuns, err := ops.PrepareTaskRuns(depTaskName, runners); err != nil {
-					return nil, fmt.Errorf("ParseTaskError: task: %s has invalid dependency: %s", task.Name, depTaskName)
+					return nil, err
 				} else {
 					runs = append(runs, depTaskRuns...)
 				}
@@ -74,7 +80,6 @@ func (ops *Ops) PrepareTaskRuns(taskName string, runners []runner.Runner) ([]run
 			return nil, fmt.Errorf("parse task: %s error:%w", taskName, err)
 		}
 		runs = append(runs, run)
-
 	} else { // invalid task
 		return nil, &ParseError{target: taskName, Err: fmt.Errorf("%s is not a valid task", taskName)}
 	}
