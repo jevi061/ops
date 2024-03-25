@@ -128,7 +128,7 @@ func (ops *Ops) PrepareRunners(servers map[string]*Server, tag string) []runner.
 		}
 	}
 	runners := make([]runner.Runner, 0)
-	for _, c := range servers {
+	for _, c := range selectedServers {
 		runners = append(runners, runner.NewSSHRunner(c.Host,
 			runner.WithPort(c.Port), runner.WithUser(c.User), runner.WithPassword(c.Password)))
 	}
