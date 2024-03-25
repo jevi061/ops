@@ -33,7 +33,7 @@ func (r *LocalRunner) Connect() error {
 	if err != nil {
 		return err
 	}
-	r.user = u.Username
+	r.user = u.Name
 	return nil
 }
 
