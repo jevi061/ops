@@ -11,6 +11,7 @@ import (
 	"github.com/containerd/console"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/term"
 )
 
 type SSHRunner struct {
@@ -54,6 +55,14 @@ func NewSSHRunner(host string, options ...SSHRunnerOption) *SSHRunner {
 }
 
 func (r *SSHRunner) Connect() error {
+	if r.password == "" {
+		fmt.Printf("%s@%s's password: ", r.user, r.host)
+		if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
+			return errors.New("read password failed")
+		} else {
+			r.password = string(pass)
+		}
+	}
 	config := &ssh.ClientConfig{
 		User: r.user,
 		Auth: []ssh.AuthMethod{
