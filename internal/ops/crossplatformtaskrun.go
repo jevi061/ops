@@ -92,7 +92,8 @@ func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (ru
 	}
 	task.Envs = vs
 	// expand cmd with envs
-	cmd := os.Expand(strings.TrimSpace(task.Cmd), func(s string) string { return task.Envs[s] })
+	//cmd := os.Expand(strings.TrimSpace(task.Cmd), func(s string) string { return task.Envs[s] })
+	cmd := strings.TrimSpace(task.Cmd)
 	task.Cmd = cmd
 	// upload
 	if strings.Contains(cmd, "->") {
@@ -100,7 +101,7 @@ func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (ru
 		if len(fields) != 3 {
 			return nil, fmt.Errorf("incorrect file transfer syntex,use: LOCAL_SRC -> REMOTE_DIRECTORY ")
 		}
-		absSrc, err := filepath.Abs(fields[0])
+		absSrc, err := filepath.Abs(os.Expand(fields[0], func(s string) string { return task.Envs[s] }))
 		if err != nil {
 			return nil, fmt.Errorf("resolve upload src file path failed:%w", err)
 		}

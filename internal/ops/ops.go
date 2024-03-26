@@ -180,7 +180,7 @@ func (ops *Ops) Execute(taskRuns []runner.TaskRun) error {
 func (ops *Ops) CloseRunners(runners []runner.Runner) error {
 	for _, r := range runners {
 		if err := r.Close(); err != nil {
-			fmt.Println("close runners failed:", err)
+			return fmt.Errorf("close runner: %s failed:%w", r.Host(), err)
 		}
 	}
 	return nil

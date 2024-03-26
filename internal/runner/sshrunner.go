@@ -76,12 +76,16 @@ func (r *SSHRunner) Connect() error {
 			authMethods = append(authMethods, ssh.PublicKeys(signers...))
 		}
 	}
+	if r.password != "" {
+		authMethods = append(authMethods, ssh.Password(r.password))
+	}
 	if len(authMethods) <= 0 {
 		fmt.Printf("%s@%s's password: ", r.user, r.host)
 		if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
 			return errors.New("read password failed")
 		} else {
 			r.password = string(pass)
+			authMethods = append(authMethods, ssh.Password(r.password))
 		}
 	}
 	config := &ssh.ClientConfig{
