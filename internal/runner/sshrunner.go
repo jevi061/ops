@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/containerd/console"
@@ -55,7 +56,27 @@ func NewSSHRunner(host string, options ...SSHRunnerOption) *SSHRunner {
 }
 
 func (r *SSHRunner) Connect() error {
-	if r.password == "" {
+	// prefer private key based auth method
+	authMethods := make([]ssh.AuthMethod, 0)
+	if homeDir, err := os.UserHomeDir(); err != nil {
+		return fmt.Errorf("find user dir failed:%w", err)
+	} else {
+		var signers []ssh.Signer
+		for _, name := range []string{"id_rsa", "id_ecdsa", "id_ecdsa_sk", "id_ed25519", "id_ed25519_sk", "id_dsa"} {
+			path := filepath.Join(homeDir, ".ssh", name)
+			if _, err := os.Stat(path); !os.IsNotExist(err) {
+				if privateKey, err := os.ReadFile(path); err == nil {
+					if signer, err := ssh.ParsePrivateKey(privateKey); err == nil {
+						signers = append(signers, signer)
+					}
+				}
+			}
+		}
+		if len(signers) > 0 {
+			authMethods = append(authMethods, ssh.PublicKeys(signers...))
+		}
+	}
+	if len(authMethods) <= 0 {
 		fmt.Printf("%s@%s's password: ", r.user, r.host)
 		if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
 			return errors.New("read password failed")
@@ -64,10 +85,8 @@ func (r *SSHRunner) Connect() error {
 		}
 	}
 	config := &ssh.ClientConfig{
-		User: r.user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(r.password),
-		},
+		User:            r.user,
+		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         5 * time.Second,
 	}
@@ -134,6 +153,14 @@ func (r *SSHRunner) Run(tr TaskRun) error {
 		return err
 	}
 	if tr.Sudo() {
+		if r.password == "" {
+			fmt.Printf("%s@%s's password: ", r.user, r.host)
+			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
+				return errors.New("read password failed")
+			} else {
+				r.password = string(pass)
+			}
+		}
 		io.Copy(r.stdin, bytes.NewBuffer([]byte(r.password+"\n")))
 	}
 	r.sessionOpened = true
