@@ -234,6 +234,19 @@ func (tr *CrossplatformTaskRun) Run() error {
 					fmt.Fprintln(os.Stderr, err)
 				}
 			}(r)
+		} else {
+			// discard stdout
+			wg.Add(1)
+			go func(rn runner.Runner) {
+				defer wg.Done()
+				io.Copy(io.Discard, rn.Stdout())
+			}(r)
+			// discard stderr
+			wg.Add(1)
+			go func(rn runner.Runner) {
+				defer wg.Done()
+				io.Copy(io.Discard, rn.Stderr())
+			}(r)
 		}
 		if tr.Stdin() != nil {
 			wg.Add(1)
