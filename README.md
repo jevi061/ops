@@ -37,21 +37,21 @@ environments:
 tasks:
   prepare:
     desc: prepare build directory for building
-    cmd: mkdir build
+    command: mkdir build
     local: true
   build:
     desc: build project
-    cmd: make build
+    command: make build
   test:
     desc: test the project
-    cmd: make test
+    command: make test
   upload:
     desc: upload tested project to remote
-    cmd: src -> dst
+    command: src -> dst
   deploy:
     desc: deploy tested project to remote
-    cmd: make deploy
-    deps:
+    command: make deploy
+    dependencies:
       - prepare
       - build
       - test
@@ -66,8 +66,8 @@ Visitable Servers where tasks to run on. As ops using ssh underline, servers mus
 #### Tasks
 
 Simple abstract of shell commands, which you can run on servers. Here are 3 supported task variants :
-- cmd commands to run on remote computers
-- local-cmd commands to run on the current local computer
+- command commands to run on remote computers
+- local-command commands to run on the current local computer
 - upload transfer files or directories to remote computers
 
 Each task could have its own environments defined under the task section in Opsfile, and task-associated environments will override global environments when conflicts.

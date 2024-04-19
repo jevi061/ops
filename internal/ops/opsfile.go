@@ -60,12 +60,12 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 
 type Task struct {
 	Name  string            `yaml:"name"`
-	Cmd   string            `yaml:"cmd"`
+	Cmd   string            `yaml:"command"`
 	Desc  string            `yaml:"desc"`
 	Local bool              `yaml:"local"`
 	Sudo  bool              `yaml:"sudo"`
 	Envs  map[string]string `yaml:"environments"`
-	Deps  []string          `yaml:"deps"`
+	Deps  []string          `yaml:"dependencies"`
 }
 
 type Environments struct {

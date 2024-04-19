@@ -10,13 +10,14 @@ environments:
 tasks:
   prepare:
     desc: prepare build directory for building
-    local-cmd: mkdir build
+    command: mkdir build
+    local: true
   build:
     desc: build project
-    cmd: make build
+    command: make build
   test:
     desc: test the project
-    cmd: |- 
+    command: |- 
           make test
           fuck ou
   upload:
@@ -26,4 +27,4 @@ tasks:
       dest: /app
   deploy:
     desc: deploy tested project to remote
-    cmd: make deploy
+    command: make deploy
