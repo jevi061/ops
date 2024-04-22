@@ -76,8 +76,8 @@ func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (ru
 	if task == nil {
 		return nil, errors.New("empty task not allowed")
 	}
-	if len(runners) <= 0 {
-		return nil, fmt.Errorf("no runners provided to run task:%s", task.Name)
+	if !task.Local && len(runners) <= 0 {
+		return nil, fmt.Errorf("no runners provided to run remote task: %s", task.Name)
 	}
 	if task.Cmd == "" {
 		return nil, fmt.Errorf("no cmd found for task: %s", task.Name)
