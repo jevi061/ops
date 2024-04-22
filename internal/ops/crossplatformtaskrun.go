@@ -197,8 +197,8 @@ func (tr *CrossplatformTaskRun) Name() string {
 // Run execute internal task
 func (tr *CrossplatformTaskRun) Run() error {
 	fmt.Println("")
-	gray := color.Gray.Render
-	bold := color.Bold.Render
+	gray, bold := color.Gray.Render, color.Bold.Render
+	green, red := color.Green.Render, color.Red.Render
 	fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(tr.task.Name), gray(tr.task.Desc))
 	current := console.Current()
 	ws, err := current.Size()
@@ -260,9 +260,9 @@ func (tr *CrossplatformTaskRun) Run() error {
 	wg.Wait()
 	for _, c := range tr.runners {
 		if err := c.Wait(); err != nil {
-			color.Redf("[%s]: failed:%s\n", c.Host(), err.Error())
+			fmt.Printf("Server: [%s] Status: %s Reason: %s\n", c.Host(), red("Error"), red(err.Error()))
 		} else {
-			color.Greenf("[%s]: ok\n", c.Host())
+			fmt.Printf("Server: [%s] Status: %s\n", c.Host(), green("Success"))
 		}
 	}
 	return nil
