@@ -29,7 +29,10 @@ func NewRunCmd() *cobra.Command {
 				os.Exit(1)
 			}
 			o := ops.NewOps(conf, ops.WithDebug(debug))
-			remoteRunners := o.PrepareRunners(conf.Servers.Names, tag)
+			remoteRunners := make([]runner.Runner, 0)
+			if conf.Servers != nil && len(conf.Servers.Names) > 0 {
+				remoteRunners = o.PrepareRunners(conf.Servers.Names, tag)
+			}
 			taskRuns := make([]runner.TaskRun, 0)
 			for _, taskName := range args {
 				if runs, err := o.PrepareTaskRuns(taskName, remoteRunners); err != nil {
