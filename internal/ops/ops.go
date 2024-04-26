@@ -196,7 +196,7 @@ func (ops *Ops) RelaySignals(runners []runner.Runner, signals chan os.Signal) er
 		for _, r := range runners {
 			err := r.Signal(sig)
 			if err != nil {
-				return fmt.Errorf("send signal to runner: [%s] failed", r.Host())
+				return fmt.Errorf("send signal to runner: [%s] failed: %w", r.Host(), err)
 			}
 		}
 	}
