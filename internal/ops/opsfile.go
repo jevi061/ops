@@ -50,7 +50,7 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return fmt.Errorf("%d:%d require mappings for tasks", node.Line, node.Column)
 	}
-	var tasks map[string]*Task
+	tasks := make(map[string]*Task, 0)
 	if err := node.Decode(&tasks); err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (e *Environments) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return fmt.Errorf("%d:%d require mappings for environments", node.Line, node.Column)
 	}
-	var envs map[string]string
+	envs := make(map[string]string, 0)
 	if err := node.Decode(&envs); err != nil {
 		return err
 	}
@@ -94,6 +94,9 @@ func NewOpsfile(data []byte) (*Opsfile, error) {
 	// setup default values
 	file.Shell = "bash"
 	file.FailFast = true
+	file.Environments = &Environments{Envs: make(map[string]string, 0)}
+	file.Tasks = &Tasks{Names: make(map[string]*Task, 0)}
+	file.Servers = &Servers{Names: make(map[string]*Server, 0)}
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
 	}
