@@ -1,0 +1,9 @@
+tasks:
+  build:
+    desc: build project
+    command: go build
+    local: true
+  install:
+    desc: install project
+    command: go install
+    local: true
