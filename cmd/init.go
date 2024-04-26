@@ -11,12 +11,14 @@ import (
 func NewInitCmd() *cobra.Command {
 	var opsfile = "./Opsfile.yml"
 	const base = `
+version: "1.0"
+shell: bash
+fail-fast: true	
 servers:
   example:
     host: www.example.com
     port: 22
     user: root
-    password: ******
 # global environments to use when ops to run tasks or pipelines
 environments:
     WORKING_DIR: /app

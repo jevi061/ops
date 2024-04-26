@@ -25,12 +25,14 @@ $ ops run TASK... [flags]
 The manifest file for instructing ops to run, in which you can define target servers,tasks, and environments .
 When ops starts to run, it looks for the file in the current directory. You can also set the path of Opsfile using flag -f or --opsfile.
 ```yaml
+version: "1.0"
+shell: bash
+fail-fast: true
 servers:
   example:
     host: www.example.com
     port: 22
     user: root
-    password: ******
 # global environments to use when ops to run tasks or pipelines
 environments:
   WORKING_DIR: /app
