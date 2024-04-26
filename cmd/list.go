@@ -27,9 +27,9 @@ func NewListCmd() *cobra.Command {
 			}
 			t := table.NewWriter()
 			t.SetOutputMirror(os.Stdout)
-			t.AppendHeader(table.Row{"Task", "Desc"})
+			t.AppendHeader(table.Row{"Task", "Local", "Desc"})
 			for _, task := range conf.Tasks.Names {
-				t.AppendRow(table.Row{task.Name, task.Desc})
+				t.AppendRow(table.Row{task.Name, task.Local, task.Desc})
 				t.AppendSeparator()
 			}
 			t.SetStyle(table.StyleLight)
