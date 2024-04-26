@@ -75,7 +75,7 @@ func (ops *Ops) PrepareTaskRuns(taskName string, runners []runner.Runner) ([]run
 			}
 		}
 		// task itself
-		run, err := NewTaskRun(task, ops.conf.Environments.Envs, runners)
+		run, err := NewTaskRun(ops.conf.Shell, task, ops.conf.Environments.Envs, runners)
 		if err != nil {
 			return nil, fmt.Errorf("parse task: %s error:%w", taskName, err)
 		}
@@ -163,15 +163,15 @@ func (ops *Ops) AlignAndColorRunnersPromets(runners []runner.Runner) {
 
 }
 func (ops *Ops) Execute(taskRuns []runner.TaskRun) error {
-	// max := 0
-	// for _, run := range taskRuns {
-	// 	if len(run.task.Name) > max {
-	// 		max = len(run.task.Name)
-	// 	}
-	// }
-	//green, blue, red := color.New(color.FgHiGreen).Add(color.Bold), color.New(color.FgBlue).Add(color.Bold), color.New(color.FgRed)
+
 	for _, run := range taskRuns {
-		run.Run()
+		if err := run.Run(); err != nil {
+			if ops.conf.FailFast {
+				return err
+			} else {
+				fmt.Fprintln(os.Stderr, err)
+			}
+		}
 	}
 
 	return nil

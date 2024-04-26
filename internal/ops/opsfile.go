@@ -9,6 +9,9 @@ import (
 )
 
 type Opsfile struct {
+	Version      string        `yaml:"version"`
+	Shell        string        `yaml:"shell"`
+	FailFast     bool          `yaml:"fail-fast"`
 	Servers      *Servers      `yaml:"servers"`
 	Tasks        *Tasks        `yaml:"tasks"`
 	Environments *Environments `yaml:"environments"`
@@ -85,6 +88,9 @@ func (e *Environments) UnmarshalYAML(node *yaml.Node) error {
 }
 func NewOpsfile(data []byte) (*Opsfile, error) {
 	var file Opsfile
+	// setup default values
+	file.Shell = "bash"
+	file.FailFast = true
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
 	}

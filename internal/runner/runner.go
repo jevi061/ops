@@ -7,6 +7,7 @@ import (
 
 // TaskRun executable/runnable task
 type TaskRun interface {
+	Shell() string
 	Command() string
 	Environments() map[string]string
 	Stdin() io.Reader

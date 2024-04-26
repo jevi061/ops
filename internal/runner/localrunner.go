@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/exec"
 	"os/user"
-	"runtime"
 
 	"github.com/rs/xid"
 )
@@ -23,6 +22,12 @@ type LocalRunner struct {
 	stdin   io.WriteCloser
 	promet  string
 	debug   bool // running in debug mode or not
+}
+
+var shellCommandArgs = map[string]string{
+	"sh":         "-c",
+	"bash":       "-c",
+	"powershell": "-command",
 }
 
 func NewLocalRunner() *LocalRunner {
@@ -58,11 +63,11 @@ func (r *LocalRunner) Run(tr TaskRun) error {
 		return errors.New("runner is already running")
 	}
 	r.running = true
-	shell, flag := "powershell", "-command"
-	if runtime.GOOS != "windows" {
-		shell, flag = "bash", "-c"
+	flag, ok := shellCommandArgs[tr.Shell()]
+	if !ok {
+		return fmt.Errorf("shell: [%s] is not supported, please use sh、bash and powershell", tr.Shell())
 	}
-	cmd := exec.Command(shell, flag, tr.Command())
+	cmd := exec.Command(tr.Shell(), flag, tr.Command())
 	jenvs := make([]string, 0)
 	for k, v := range tr.Environments() {
 		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
@@ -85,7 +90,7 @@ func (r *LocalRunner) Run(tr TaskRun) error {
 		return err
 	}
 	if r.debug {
-		fmt.Printf("%s%s %s %s\n", r.Promet(), shell, flag, tr.Command())
+		fmt.Printf("%s%s %s %s\n", r.Promet(), tr.Shell(), flag, tr.Command())
 	}
 	if err := r.exec.Start(); err != nil {
 		return err

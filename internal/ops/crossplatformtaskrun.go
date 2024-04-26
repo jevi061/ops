@@ -19,11 +19,12 @@ import (
 
 // CrossplatformTaskRun is minimum unit of task with target runners for ops to run
 type CrossplatformTaskRun struct {
-	runners []runner.Runner
-	task    *Task
-	envs    map[string]string
-	input   io.Reader // channel for transfer data to remote stdin
+	shell string
+	task  *Task
+	envs  map[string]string
+	input io.Reader // channel for transfer data to remote stdin
 	//inputTrigger func()    // func to trigger input
+	runners []runner.Runner
 }
 
 var localRunner = runner.NewLocalRunner()
@@ -43,6 +44,9 @@ func (tr *CrossplatformTaskRun) MustParse(cmdline string) (string, []string) {
 		panic("invlid task")
 	}
 	return cmd, args
+}
+func (tr *CrossplatformTaskRun) Shell() string {
+	return tr.shell
 }
 func (tr *CrossplatformTaskRun) Command() string {
 	// if tr.task.LocalCmd != "" {
@@ -72,7 +76,7 @@ func (tr *CrossplatformTaskRun) Runners() []runner.Runner {
 }
 
 // NewTaskRun create TaskRun with global environments
-func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (runner.TaskRun, error) {
+func NewTaskRun(shell string, task *Task, envs map[string]string, runners []runner.Runner) (runner.TaskRun, error) {
 	if task == nil {
 		return nil, errors.New("empty task not allowed")
 	}
@@ -109,15 +113,15 @@ func NewTaskRun(task *Task, envs map[string]string, runners []runner.Runner) (ru
 		if err != nil {
 			return nil, err
 		}
-		return &CrossplatformTaskRun{task: task, envs: vs, input: pr, runners: runners}, nil
+		return &CrossplatformTaskRun{shell: shell, task: task, envs: vs, input: pr, runners: runners}, nil
 		// download
 	} else if strings.Contains(cmd, "<-") {
 		return nil, errors.New("cant download file now")
 	}
 	if task.Local {
-		return &CrossplatformTaskRun{task: task, envs: vs, runners: []runner.Runner{localRunner}}, nil
+		return &CrossplatformTaskRun{shell: shell, task: task, envs: vs, runners: []runner.Runner{localRunner}}, nil
 	}
-	return &CrossplatformTaskRun{task: task, envs: vs, input: nil, runners: runners}, nil
+	return &CrossplatformTaskRun{shell: shell, task: task, envs: vs, input: nil, runners: runners}, nil
 }
 
 func pipeFiles(src string) (io.Reader, error) {
