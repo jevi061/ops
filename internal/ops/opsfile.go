@@ -36,6 +36,9 @@ func (c *Servers) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode(&c.Names); err != nil {
 		return err
 	}
+	for _, s := range c.Names {
+		s.Password = strings.TrimSpace(s.Password)
+	}
 	return nil
 }
 
