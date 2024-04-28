@@ -25,26 +25,25 @@ environments:
 tasks:
   prepare:
     desc: prepare build directory for building
-    cmd: mkdir build
+    command: mkdir build
 	local: true
   build:
     desc: build project
-    cmd: make build
+    command: make build
   test:
     desc: test the project
-    cmd: make test
+    command: make test
   upload:
     desc: upload tested project to remote
-    cmd: . -> /app
+    command: . -> /app
   deploy:
     desc: deploy tested project to remote
-    cmd: make deploy
+    command: make deploy
     deps:
       - prepare
       - build
       - test
       - upload
-
 	`
 	var initCmd = &cobra.Command{
 		Use:   "init",
@@ -53,7 +52,7 @@ tasks:
 		Run: func(cmd *cobra.Command, args []string) {
 			_, err := os.Stat(opsfile)
 			if !errors.Is(err, os.ErrNotExist) {
-				fmt.Fprintln(os.Stderr, "There is already a Opsfile in current directory")
+				fmt.Fprintln(os.Stderr, "There is already an Opsfile in current directory")
 				os.Exit(1)
 			}
 			f, err := os.Create(opsfile)
