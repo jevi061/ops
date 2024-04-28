@@ -163,17 +163,15 @@ func (ops *Ops) AlignAndColorRunnersPromets(runners []runner.Runner) {
 
 }
 func (ops *Ops) Execute(taskRuns []runner.TaskRun) error {
-
 	for _, run := range taskRuns {
 		if err := run.Run(); err != nil {
 			if ops.conf.FailFast {
 				return err
 			} else {
-				fmt.Fprintln(os.Stderr, err)
+				fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
 			}
 		}
 	}
-
 	return nil
 }
 
