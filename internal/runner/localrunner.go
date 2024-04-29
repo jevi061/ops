@@ -25,9 +25,8 @@ type LocalRunner struct {
 }
 
 var shellCommandArgs = map[string]string{
-	"sh":         "-c",
-	"bash":       "-c",
-	"powershell": "-command",
+	"sh":   "-c",
+	"bash": "-c",
 }
 
 func NewLocalRunner() *LocalRunner {
