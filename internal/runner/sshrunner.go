@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containerd/console"
@@ -127,10 +128,20 @@ func (r *SSHRunner) Run(tr TaskRun) error {
 	for k, v := range tr.Environments() {
 		r.session.Setenv(k, v)
 	}
-	cmd := tr.Command()
+	jenvs := make([]string, 0)
+	for k, v := range tr.Environments() {
+		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
+	}
+	envStr := strings.Join(jenvs, " ")
+	flag, ok := shellCommandArgs[tr.Shell()]
+	if !ok {
+		return fmt.Errorf("shell: [%s] is not supported,please use sh and bash instead", tr.Shell())
+	}
+	cmd := fmt.Sprintf("%s %s '%s'", tr.Shell(), flag, tr.Command())
 	if tr.Sudo() {
 		cmd = fmt.Sprintf(`sudo -E -p "" -S %s `, cmd)
 	}
+	cmd = envStr + " " + cmd
 	if r.debug && tr.Stdin() == nil {
 		fmt.Printf("%s%s\n", r.Promet(), cmd)
 		// request pty

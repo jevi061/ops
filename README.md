@@ -20,14 +20,19 @@ $ go install github.com/jevi061/ops@latest
 ```shell
 # init 
 $ ops init
+
 # list tasks in Opsfile
 $ ops list
+
 # run
 $ ops run TASK... [flags]
+
 # run single task
 $ ops run build
+
 # run multi tasks
 $ ops run build test deploy
+
 # open interactive shell
 $ ops ssh SERVER
 ```
@@ -79,7 +84,10 @@ Version of Opsfile specifiction.
 Set shell program for ops to use. Here are only 3 are supported:
 - sh
 - bash
-- powershell
+#### fail-fast
+
+Exit immediately when meet any error
+
 
 #### servers
 

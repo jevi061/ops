@@ -64,7 +64,7 @@ func (r *LocalRunner) Run(tr TaskRun) error {
 	r.running = true
 	flag, ok := shellCommandArgs[tr.Shell()]
 	if !ok {
-		return fmt.Errorf("shell: [%s] is not supported, please use sh、bash and powershell", tr.Shell())
+		return fmt.Errorf("shell: [%s] is not supported, please use sh、bash instead", tr.Shell())
 	}
 	cmd := exec.Command(tr.Shell(), flag, tr.Command())
 	jenvs := make([]string, 0)
