@@ -57,11 +57,9 @@ func NewSSHRunner(host string, options ...SSHRunnerOption) *SSHRunner {
 }
 
 func (r *SSHRunner) Connect() error {
-	// prefer private key based auth method
+	// prefer private key based auth method if home dir exists
 	authMethods := make([]ssh.AuthMethod, 0)
-	if homeDir, err := os.UserHomeDir(); err != nil {
-		return fmt.Errorf("find user dir failed:%w", err)
-	} else {
+	if homeDir, err := os.UserHomeDir(); err == nil {
 		var signers []ssh.Signer
 		for _, name := range []string{"id_rsa", "id_ecdsa", "id_ecdsa_sk", "id_ed25519", "id_ed25519_sk", "id_dsa"} {
 			path := filepath.Join(homeDir, ".ssh", name)
@@ -97,7 +95,21 @@ func (r *SSHRunner) Connect() error {
 	}
 	conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", r.host, r.port), config)
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), "unable to authenticate") && !strings.Contains(err.Error(), "password") {
+			fmt.Printf("%s@%s's password: ", r.user, r.host)
+			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
+				return errors.New("read password failed")
+			} else {
+				r.password = string(pass)
+				config.Auth = append(authMethods, ssh.Password(r.password))
+				conn, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", r.host, r.port), config)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			return err
+		}
 	}
 	r.conn = conn
 	return nil

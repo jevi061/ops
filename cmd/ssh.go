@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/containerd/console"
@@ -78,8 +79,24 @@ func NewSShCommand() *cobra.Command {
 			}
 			conn, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", c.Host, c.Port), config)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "connect to :", serverName, "failed:", err)
-				os.Exit(1)
+				if strings.Contains(err.Error(), "unable to authenticate") && !strings.Contains(err.Error(), "password") {
+					fmt.Printf("%s@%s's password: ", c.User, c.Host)
+					if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
+						fmt.Fprintln(os.Stderr, "\nconnect to server :", serverName, "failed:", err)
+						os.Exit(1)
+					} else {
+						c.Password = string(pass)
+						config.Auth = append(authMethods, ssh.Password(c.Password))
+						conn, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", c.Host, c.Port), config)
+						if err != nil {
+							fmt.Fprintln(os.Stderr, "\nconnect to server :", serverName, "failed:", err)
+							os.Exit(1)
+						}
+					}
+				} else {
+					fmt.Fprintln(os.Stderr, "\nconnect to server :", serverName, "failed:", err)
+					os.Exit(1)
+				}
 			}
 			defer conn.Close()
 			session, err := conn.NewSession()
