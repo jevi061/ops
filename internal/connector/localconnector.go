@@ -1,4 +1,4 @@
-package runner
+package connector
 
 import (
 	"errors"
@@ -11,8 +11,9 @@ import (
 	"github.com/rs/xid"
 )
 
-type LocalRunner struct {
+type LocalConnector struct {
 	id      string
+	local   bool
 	host    string
 	user    string
 	running bool
@@ -29,10 +30,10 @@ var shellCommandArgs = map[string]string{
 	"bash": "-c",
 }
 
-func NewLocalRunner() *LocalRunner {
-	return &LocalRunner{id: xid.New().String(), host: "localhost"}
+func NewLocalConnector() *LocalConnector {
+	return &LocalConnector{id: xid.New().String(), local: true, host: "localhost"}
 }
-func (r *LocalRunner) Connect() error {
+func (r *LocalConnector) Connect() error {
 	u, err := user.Current()
 	if err != nil {
 		return err
@@ -41,23 +42,23 @@ func (r *LocalRunner) Connect() error {
 	return nil
 }
 
-func (r *LocalRunner) Close() error {
+func (r *LocalConnector) Close() error {
 	return nil
 }
 
-func (r *LocalRunner) Stdin() io.WriteCloser {
+func (r *LocalConnector) Stdin() io.WriteCloser {
 	return r.stdin
 }
 
-func (r *LocalRunner) Stdout() io.Reader {
+func (r *LocalConnector) Stdout() io.Reader {
 	return r.stdout
 }
 
-func (r *LocalRunner) Stderr() io.Reader {
+func (r *LocalConnector) Stderr() io.Reader {
 	return r.stderr
 }
 
-func (r *LocalRunner) Run(tr TaskRun) error {
+func (r *LocalConnector) Run(tr Task) error {
 	if r.running {
 		return errors.New("runner is already running")
 	}
@@ -97,7 +98,11 @@ func (r *LocalRunner) Run(tr TaskRun) error {
 	return nil
 }
 
-func (r *LocalRunner) Wait() error {
+func (r *LocalConnector) Upload(src, dest string) error {
+	return errors.New("upload task is not allowed to run on local")
+}
+
+func (r *LocalConnector) Wait() error {
 	if !r.running {
 		return errors.New("wait on non running cmd is not allowed")
 	}
@@ -106,30 +111,33 @@ func (r *LocalRunner) Wait() error {
 	return err
 }
 
-func (r *LocalRunner) Promet() string {
+func (r *LocalConnector) Promet() string {
 	if r.promet != "" {
 		return r.promet
 	}
 	return fmt.Sprintf("%s@localhost | ", r.user)
 }
-func (r *LocalRunner) SetPromet(promet string) {
+func (r *LocalConnector) SetPromet(promet string) {
 	r.promet = promet
 }
 
-func (r *LocalRunner) Host() string {
+func (r *LocalConnector) Host() string {
 	return r.host
 }
-func (r *LocalRunner) Debug() bool {
+func (r *LocalConnector) Debug() bool {
 	return r.debug
 }
 
-func (r *LocalRunner) SetDebug(debug bool) {
+func (r *LocalConnector) SetDebug(debug bool) {
 	r.debug = debug
 }
-func (r *LocalRunner) ID() string {
+func (r *LocalConnector) ID() string {
 	return r.id
 }
-func (r *LocalRunner) Signal(sig os.Signal) error {
+func (r *LocalConnector) Local() bool {
+	return r.local
+}
+func (r *LocalConnector) Signal(sig os.Signal) error {
 	if !r.running {
 		return errors.New("runner is not running")
 	}

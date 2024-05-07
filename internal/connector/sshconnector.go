@@ -1,4 +1,4 @@
-package runner
+package connector
 
 import (
 	"bytes"
@@ -16,8 +16,9 @@ import (
 	"golang.org/x/term"
 )
 
-type SSHRunner struct {
+type SSHConnector struct {
 	id            string
+	local         bool
 	host          string
 	port          uint
 	user          string
@@ -31,32 +32,36 @@ type SSHRunner struct {
 	promet        string // output prefix
 	debug         bool   // run job in debug mode or not
 }
-type SSHRunnerOption func(*SSHRunner)
+type SSHTaskRunnerOption func(*SSHConnector)
 
-func WithPort(port uint) SSHRunnerOption {
-	return func(s *SSHRunner) {
-		s.port = port
+func WithPort(port uint) SSHTaskRunnerOption {
+	return func(s *SSHConnector) {
+		if port <= 0 {
+			s.port = 22
+		} else {
+			s.port = port
+		}
 	}
 }
-func WithUser(user string) SSHRunnerOption {
-	return func(s *SSHRunner) {
+func WithUser(user string) SSHTaskRunnerOption {
+	return func(s *SSHConnector) {
 		s.user = user
 	}
 }
-func WithPassword(password string) SSHRunnerOption {
-	return func(s *SSHRunner) {
+func WithPassword(password string) SSHTaskRunnerOption {
+	return func(s *SSHConnector) {
 		s.password = password
 	}
 }
-func NewSSHRunner(host string, options ...SSHRunnerOption) *SSHRunner {
-	r := &SSHRunner{id: xid.New().String(), host: host, port: 22}
+func NewSSHConnector(host string, options ...SSHTaskRunnerOption) *SSHConnector {
+	r := &SSHConnector{id: xid.New().String(), local: false, host: host, port: 22}
 	for _, option := range options {
 		option(r)
 	}
 	return r
 }
 
-func (r *SSHRunner) Connect() error {
+func (r *SSHConnector) Connect() error {
 	// prefer private key based auth method if home dir exists
 	authMethods := make([]ssh.AuthMethod, 0)
 	if homeDir, err := os.UserHomeDir(); err == nil {
@@ -83,6 +88,7 @@ func (r *SSHRunner) Connect() error {
 		if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
 			return errors.New("read password failed")
 		} else {
+			fmt.Println("")
 			r.password = string(pass)
 			authMethods = append(authMethods, ssh.Password(r.password))
 		}
@@ -100,6 +106,7 @@ func (r *SSHRunner) Connect() error {
 			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
 				return errors.New("read password failed")
 			} else {
+				fmt.Println("")
 				r.password = string(pass)
 				config.Auth = append(authMethods, ssh.Password(r.password))
 				conn, err = ssh.Dial("tcp", fmt.Sprintf("%s:%d", r.host, r.port), config)
@@ -114,7 +121,7 @@ func (r *SSHRunner) Connect() error {
 	r.conn = conn
 	return nil
 }
-func (r *SSHRunner) Run(tr TaskRun) error {
+func (r *SSHConnector) Run(tr Task) error {
 
 	if r.sessionOpened {
 		return errors.New("another seesion is using")
@@ -154,8 +161,10 @@ func (r *SSHRunner) Run(tr TaskRun) error {
 		cmd = fmt.Sprintf(`sudo -E -p "" -S %s `, cmd)
 	}
 	cmd = envStr + " " + cmd
-	if r.debug && tr.Stdin() == nil {
+	if r.debug {
 		fmt.Printf("%s%s\n", r.Promet(), cmd)
+	}
+	if tr.Stdin() == nil {
 		// request pty
 		// Set up terminal modes
 		modes := ssh.TerminalModes{
@@ -180,21 +189,26 @@ func (r *SSHRunner) Run(tr TaskRun) error {
 		return err
 	}
 	if tr.Sudo() {
+		// publickey
 		if r.password == "" {
 			fmt.Printf("%s@%s's password: ", r.user, r.host)
 			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
 				return errors.New("read password failed")
 			} else {
+				fmt.Println("")
 				r.password = string(pass)
 			}
 		}
-		io.Copy(r.stdin, bytes.NewBuffer([]byte(r.password+"\n")))
+		if _, err := io.Copy(r.stdin, bytes.NewBuffer([]byte(r.password+"\n"))); err != nil {
+			return err
+		}
 	}
 	r.sessionOpened = true
 	return nil
 
 }
-func (r *SSHRunner) Wait() error {
+
+func (r *SSHConnector) Wait() error {
 	if !r.sessionOpened {
 		return errors.New("wait on closed ssh session is not allowed")
 	}
@@ -203,7 +217,7 @@ func (r *SSHRunner) Wait() error {
 	r.sessionOpened = false
 	return err
 }
-func (r *SSHRunner) Close() error {
+func (r *SSHConnector) Close() error {
 
 	if r.sessionOpened {
 		if err := r.session.Close(); err != nil {
@@ -213,40 +227,43 @@ func (r *SSHRunner) Close() error {
 	return r.conn.Close()
 }
 
-func (r *SSHRunner) Promet() string {
+func (r *SSHConnector) Promet() string {
 	if r.promet != "" {
 		return r.promet
 	}
 	return fmt.Sprintf("%s@%s | ", r.user, r.host)
 }
-func (r *SSHRunner) SetPromet(promet string) {
+func (r *SSHConnector) SetPromet(promet string) {
 	r.promet = promet
 }
-func (r *SSHRunner) Stdin() io.WriteCloser {
+func (r *SSHConnector) Stdin() io.WriteCloser {
 	return r.stdin
 }
-func (r *SSHRunner) Stdout() io.Reader {
+func (r *SSHConnector) Stdout() io.Reader {
 	return r.stdout
 }
-func (r *SSHRunner) Stderr() io.Reader {
+func (r *SSHConnector) Stderr() io.Reader {
 	return r.stderr
 }
 
-func (r *SSHRunner) Host() string {
+func (r *SSHConnector) Host() string {
 	return r.host
 }
 
-func (r *SSHRunner) Debug() bool {
+func (r *SSHConnector) Debug() bool {
 	return r.debug
 }
 
-func (r *SSHRunner) SetDebug(debug bool) {
+func (r *SSHConnector) SetDebug(debug bool) {
 	r.debug = debug
 }
-func (r *SSHRunner) ID() string {
+func (r *SSHConnector) ID() string {
 	return r.id
 }
-func (r *SSHRunner) Signal(sig os.Signal) error {
+func (r *SSHConnector) Local() bool {
+	return r.local
+}
+func (r *SSHConnector) Signal(sig os.Signal) error {
 	if !r.sessionOpened {
 		return fmt.Errorf("session is not open")
 	}

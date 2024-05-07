@@ -20,7 +20,7 @@ var (
 
 func NewSShCommand() *cobra.Command {
 	var sshCmd = &cobra.Command{
-		Use:   "ssh SERVER_NAME",
+		Use:   "ssh SERVER",
 		Args:  cobra.MatchAll(cobra.MaximumNArgs(1), cobra.MinimumNArgs(1)),
 		Short: "Open a shell to target remote server",
 		Long:  `Open a shell through ssh to remote server,eg: ops ssh example`,
@@ -63,9 +63,10 @@ func NewSShCommand() *cobra.Command {
 			if len(authMethods) <= 0 {
 				fmt.Printf("%s@%s's password: ", c.User, c.Host)
 				if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
-					fmt.Fprintln(os.Stderr, "read password failed")
+					fmt.Fprintf(os.Stderr, "\nread password failed:%s\n", err.Error())
 					os.Exit(1)
 				} else {
+					fmt.Println("")
 					c.Password = string(pass)
 					authMethods = append(authMethods, ssh.Password(c.Password))
 				}

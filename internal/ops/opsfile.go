@@ -57,7 +57,6 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 	t.Names = tasks
 	for k, v := range t.Names {
 		if v != nil {
-			v.Cmd = strings.TrimSpace(v.Cmd)
 			v.Name = k
 		}
 	}
