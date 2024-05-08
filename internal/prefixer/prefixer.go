@@ -21,13 +21,15 @@ func NewPrefixReader(reader io.Reader, prefix string) *PrefixReader {
 }
 
 func (p *PrefixReader) Read(data []byte) (int, error) {
-	line, err := p.reader.ReadBytes('\n')
+	b, err := p.reader.ReadByte()
+	sb := []byte{b}
 	if err != nil {
-		//line = append([]byte(p.prefix), line...)
-		n := copy(data, line)
+		n := copy(data, sb)
 		return n, err
 	}
-	line = append([]byte(p.prefix), line...)
-	n := copy(data, line)
+	if b == '\n' {
+		sb = append(sb, []byte(p.prefix)...)
+	}
+	n := copy(data, sb)
 	return n, nil
 }
