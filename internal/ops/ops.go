@@ -1,8 +1,9 @@
 package ops
 
 type Ops struct {
-	conf  *Opsfile
-	debug bool
+	conf   *Opsfile
+	debug  bool
+	dryRun bool
 }
 
 type OpsOption func(*Ops)
@@ -10,6 +11,11 @@ type OpsOption func(*Ops)
 func WithDebug(debug bool) OpsOption {
 	return func(o *Ops) {
 		o.debug = debug
+	}
+}
+func WithDryRun(dryRun bool) OpsOption {
+	return func(o *Ops) {
+		o.dryRun = dryRun
 	}
 }
 
@@ -55,7 +61,7 @@ func (ops *Ops) Run(serverTag string, tasks ...string) error {
 	if err != nil {
 		return err
 	}
-	exec := NewExecutor(ops.conf, ops.debug)
+	exec := NewExecutor(ops.conf, ops.debug, ops.dryRun)
 	if err := exec.Execute(connectorTasks, connectors); err != nil {
 		return err
 	}

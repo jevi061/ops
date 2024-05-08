@@ -12,6 +12,7 @@ var (
 	tag     string
 	opsfile string
 	debug   bool
+	dryRun  bool
 )
 
 func NewRunCmd() *cobra.Command {
@@ -26,7 +27,7 @@ func NewRunCmd() *cobra.Command {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
 			}
-			o := ops.NewOps(conf, ops.WithDebug(debug))
+			o := ops.NewOps(conf, ops.WithDebug(debug), ops.WithDryRun(dryRun))
 			if err := o.Run(tag, args...); err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
@@ -76,5 +77,6 @@ func NewRunCmd() *cobra.Command {
 	runCmd.PersistentFlags().StringVarP(&tag, "tag", "t", "", "server tag")
 	runCmd.PersistentFlags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
 	runCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "run tasks in debug mode")
+	runCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "", false, "test task without applying changes")
 	return runCmd
 }

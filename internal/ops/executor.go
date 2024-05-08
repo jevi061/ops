@@ -17,12 +17,13 @@ import (
 )
 
 type cliExecutor struct {
-	conf  *Opsfile
-	debug bool
+	conf   *Opsfile
+	debug  bool
+	dryRun bool
 }
 
-func NewExecutor(conf *Opsfile, debug bool) *cliExecutor {
-	return &cliExecutor{conf: conf, debug: debug}
+func NewExecutor(conf *Opsfile, debug bool, dryRun bool) *cliExecutor {
+	return &cliExecutor{conf: conf, debug: debug, dryRun: dryRun}
 }
 func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Connector) error {
 	hasRemoteTask := e.hasRemoteTask(tasks)
@@ -62,28 +63,25 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 		for _, c := range connectors {
 			if t.Local() == c.Local() {
 				fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(t.Name()), gray(t.Desc()))
-				current := console.Current()
-				if ws, err := current.Size(); err != nil {
-					fmt.Println(strings.Repeat("-", 10))
-				} else {
-					fmt.Println(strings.Repeat("-", int(ws.Width)))
-				}
-				//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
-				if err := c.Run(t); err != nil {
-					if e.conf.FailFast {
-						return err
+				e.PrintDivider('-')
+				if !e.dryRun {
+					//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
+					if err := c.Run(t); err != nil {
+						if e.conf.FailFast {
+							return err
+						} else {
+							fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
+						}
+					}
+					e.HandleInputAndOutput(t, c)
+					if err := c.Wait(); err != nil {
+						fmt.Printf("Server: [%s] Status: %s Reason: %s\n", c.Host(), red("Error"), red(err.Error()))
+						if e.conf.FailFast {
+							return err
+						}
 					} else {
-						fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
+						fmt.Printf("Server: [%s] Status: %s\n", c.Host(), green("Success"))
 					}
-				}
-				e.Wait(t, c)
-				if err := c.Wait(); err != nil {
-					fmt.Printf("Server: [%s] Status: %s Reason: %s\n", c.Host(), red("Error"), red(err.Error()))
-					if e.conf.FailFast {
-						return err
-					}
-				} else {
-					fmt.Printf("Server: [%s] Status: %s\n", c.Host(), green("Success"))
 				}
 			}
 		}
@@ -108,7 +106,7 @@ func (e *cliExecutor) RelaySignals(runners []connector.Connector, signals chan o
 	}
 }
 
-func (e *cliExecutor) Wait(task connector.Task, c connector.Connector) error {
+func (e *cliExecutor) HandleInputAndOutput(task connector.Task, c connector.Connector) error {
 	var wg sync.WaitGroup
 	if e.debug {
 		// copy remote computer's stdout to current
@@ -195,4 +193,13 @@ func (e *cliExecutor) hasRemoteTask(tasks []connector.Task) bool {
 		}
 	}
 	return false
+}
+
+func (e *cliExecutor) PrintDivider(divider byte) {
+	current := console.Current()
+	if ws, err := current.Size(); err != nil {
+		fmt.Println(strings.Repeat(string(divider), 10))
+	} else {
+		fmt.Println(strings.Repeat(string(divider), int(ws.Width)))
+	}
 }
