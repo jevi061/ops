@@ -95,7 +95,6 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 			}
 			// build cmd
 			cmd := fmt.Sprintf(`tar -C %s -xvzf - `, fields[2])
-			fmt.Printf("envs:%#v", task.Envs)
 			stdin := pipeFiles(absSrc)
 			t := connector.NewCommonTask(connector.WithName(task.Name),
 				connector.WithShell(conf.Shell),
