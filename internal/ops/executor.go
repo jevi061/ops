@@ -100,7 +100,7 @@ func (e *cliExecutor) RelaySignals(runners []connector.Connector, signals chan o
 		for _, r := range runners {
 			err := r.Signal(sig)
 			if err != nil {
-				return fmt.Errorf("send signal to runner: [%s] failed: %w", r.Host(), err)
+				return fmt.Errorf("send signal to connector: [%s] failed: %w", r.Host(), err)
 			}
 		}
 	}
