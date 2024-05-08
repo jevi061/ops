@@ -196,6 +196,11 @@ func (e *cliExecutor) hasRemoteTask(tasks []connector.Task) bool {
 }
 
 func (e *cliExecutor) PrintDivider(divider byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println(strings.Repeat(string(divider), 10))
+		}
+	}()
 	current := console.Current()
 	if ws, err := current.Size(); err != nil {
 		fmt.Println(strings.Repeat(string(divider), 10))
