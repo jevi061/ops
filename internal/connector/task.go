@@ -13,6 +13,7 @@ type Task interface {
 	Sudo() bool
 	Local() bool
 	Name() string
+	Desc() string
 }
 
 // CommonTask is minimum unit of task with target runners for ops to run
@@ -24,6 +25,7 @@ type CommonTask struct {
 	sudo    bool
 	local   bool
 	name    string
+	desc    string
 }
 
 func NewCommonTask(options ...func(*CommonTask)) *CommonTask {
@@ -56,6 +58,11 @@ func WithSudo(sudo bool) func(*CommonTask) {
 func WithName(name string) func(*CommonTask) {
 	return func(ct *CommonTask) {
 		ct.name = name
+	}
+}
+func WithDesc(desc string) func(*CommonTask) {
+	return func(ct *CommonTask) {
+		ct.desc = desc
 	}
 }
 func WithLocal(local bool) func(*CommonTask) {
@@ -92,4 +99,7 @@ func (ct *CommonTask) Sudo() bool {
 }
 func (ct *CommonTask) Name() string {
 	return ct.name
+}
+func (ct *CommonTask) Desc() string {
+	return ct.desc
 }

@@ -97,6 +97,7 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 			cmd := fmt.Sprintf(`tar -C %s -xvzf - `, fields[2])
 			stdin := pipeFiles(absSrc)
 			t := connector.NewCommonTask(connector.WithName(task.Name),
+				connector.WithDesc(task.Desc),
 				connector.WithShell(conf.Shell),
 				connector.WithCommand(cmd),
 				connector.WithEnvironments(mergedEnvs),
@@ -107,6 +108,7 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 
 		} else {
 			t := connector.NewCommonTask(connector.WithName(task.Name),
+				connector.WithDesc(task.Desc),
 				connector.WithShell(conf.Shell),
 				connector.WithCommand(task.Cmd),
 				connector.WithEnvironments(mergedEnvs),

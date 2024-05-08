@@ -61,7 +61,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 	for _, t := range tasks {
 		for _, c := range connectors {
 			if t.Local() == c.Local() {
-				fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(t.Name()), gray(t.Name()))
+				fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(t.Name()), gray(t.Desc()))
 				current := console.Current()
 				if ws, err := current.Size(); err != nil {
 					fmt.Println(strings.Repeat("-", 10))
