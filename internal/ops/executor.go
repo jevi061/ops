@@ -8,7 +8,9 @@ import (
 	"os/signal"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/briandowns/spinner"
 	"github.com/containerd/console"
 	"github.com/gookit/color"
 	"github.com/jevi061/ops/internal/connector"
@@ -58,7 +60,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 	// execute tasks through connectors
 	gray, bold := color.Gray.Render, color.Bold.Render
 	green, red := color.Green.Render, color.Red.Render
-
+	sp := spinner.New(spinner.CharSets[11], 500*time.Millisecond, spinner.WithHiddenCursor(true), spinner.WithFinalMSG(""))
 	for _, t := range tasks {
 		for _, c := range connectors {
 			if t.Local() == c.Local() {
@@ -66,6 +68,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 				e.PrintDivider('-')
 				if !e.dryRun {
 					//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
+					sp.Start()
 					if err := c.Run(t); err != nil {
 						if e.conf.FailFast {
 							return err
@@ -73,7 +76,13 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 							fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
 						}
 					}
-					e.HandleInputAndOutput(t, c)
+					if err := e.HandleInputAndOutput(t, c); err != nil {
+						if e.conf.FailFast {
+							return err
+						}
+						fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
+					}
+					sp.Stop()
 					if err := c.Wait(); err != nil {
 						fmt.Printf("Server: [%s] Status: %s Reason: %s\n", c.Host(), red("Error"), red(err.Error()))
 						if e.conf.FailFast {
