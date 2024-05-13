@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/briandowns/spinner"
-	"github.com/containerd/console"
 	"github.com/gookit/color"
 	"github.com/jevi061/ops/internal/connector"
 	"github.com/jevi061/ops/internal/prefixer"
+	"github.com/jevi061/ops/internal/termsize"
 	"github.com/mattn/go-runewidth"
 )
 
@@ -205,15 +205,6 @@ func (e *cliExecutor) hasRemoteTask(tasks []connector.Task) bool {
 }
 
 func (e *cliExecutor) PrintDivider(divider byte) {
-	defer func() {
-		if r := recover(); r != nil {
-			fmt.Println(strings.Repeat(string(divider), 10))
-		}
-	}()
-	current := console.Current()
-	if ws, err := current.Size(); err != nil {
-		fmt.Println(strings.Repeat(string(divider), 10))
-	} else {
-		fmt.Println(strings.Repeat(string(divider), int(ws.Width)))
-	}
+	w, _ := termsize.DefaultSize(10, 0)
+	fmt.Println(strings.Repeat(string(divider), w))
 }

@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containerd/console"
+	"github.com/jevi061/ops/internal/termsize"
 	"github.com/rs/xid"
 	"golang.org/x/crypto/ssh"
 	"golang.org/x/term"
@@ -174,15 +174,12 @@ func (r *SSHConnector) Run(tr Task) error {
 			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 			ssh.VSTATUS:       1,
 		}
-		current := console.Current()
-		if ws, err := current.Size(); err != nil {
+		w, h := termsize.DefaultSize(800, 600)
+		// Request pseudo terminal
+		if err := r.session.RequestPty("xterm", h, w, modes); err != nil {
 			return err
-		} else {
-			// Request pseudo terminal
-			if err := r.session.RequestPty("xterm", int(ws.Height), int(ws.Width), modes); err != nil {
-				return err
-			}
 		}
+
 	}
 
 	if err := r.session.Start(cmd); err != nil {
