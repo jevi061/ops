@@ -20,7 +20,7 @@ func NewRunCmd() *cobra.Command {
 		Use:   "run TASK...",
 		Args:  cobra.MatchAll(cobra.MinimumNArgs(1)),
 		Short: "Run tasks",
-		Long:  `Run tasks defined in Opsfile,eg: ops run task1 task2 ...`,
+		Long:  `Run tasks defined in Opsfile, eg: ops run task1 task2 ...`,
 		Run: func(cmd *cobra.Command, args []string) {
 			conf, err := ops.NewOpsfileFromPath(opsfile)
 			if err != nil {

@@ -23,7 +23,7 @@ func NewSShCommand() *cobra.Command {
 		Use:   "ssh SERVER",
 		Args:  cobra.MatchAll(cobra.MaximumNArgs(1), cobra.MinimumNArgs(1)),
 		Short: "Open a shell to target remote server",
-		Long:  `Open a shell through ssh to remote server,eg: ops ssh example`,
+		Long:  `Open an interactive shell through ssh to remote server,eg: ops ssh example`,
 		Run: func(cmd *cobra.Command, args []string) {
 			serverName := args[0]
 			conf, err := ops.NewOpsfileFromPath(ofile)

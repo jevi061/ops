@@ -18,7 +18,7 @@ func NewListCmd() *cobra.Command {
 		Use:   "list",
 		Args:  cobra.MatchAll(cobra.NoArgs),
 		Short: "List tasks",
-		Long:  `List tasks defined in Opsfile,eg: ops run task1 task2 ...`,
+		Long:  `List tasks defined in Opsfile, eg: ops run task1 task2 ...`,
 		Run: func(cmd *cobra.Command, args []string) {
 			conf, err := ops.NewOpsfileFromPath(conf)
 			if err != nil {
