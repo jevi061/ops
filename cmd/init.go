@@ -11,7 +11,6 @@ import (
 func NewInitCmd() *cobra.Command {
 	var opsfile = "./Opsfile.yml"
 	const base = `
-version: "1.0"
 shell: bash
 fail-fast: true	
 servers:
@@ -21,7 +20,7 @@ servers:
     user: root
 # global environments to use when ops to run tasks or pipelines
 environments:
-    WORKING_DIR: /app
+  WORKING_DIR: /app
 tasks:
   prepare:
     desc: prepare build directory for building
@@ -35,7 +34,7 @@ tasks:
     command: make test
   upload:
     desc: upload tested project to remote
-    command: . -> /app
+    transfer: . -> /app
   deploy:
     desc: deploy tested project to remote
     command: make deploy

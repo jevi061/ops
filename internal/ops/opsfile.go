@@ -10,7 +10,6 @@ import (
 )
 
 type Opsfile struct {
-	Version      string        `yaml:"version"`
 	Shell        string        `yaml:"shell"`
 	FailFast     bool          `yaml:"fail-fast"`
 	Servers      *Servers      `yaml:"servers"`
@@ -82,7 +81,6 @@ type Task struct {
 	Transfer string            `yaml:"transfer"`
 	Desc     string            `yaml:"desc"`
 	Local    bool              `yaml:"local"`
-	Sudo     bool              `yaml:"sudo"`
 	Envs     map[string]string `yaml:"environments"`
 	Deps     []string          `yaml:"dependencies"`
 }

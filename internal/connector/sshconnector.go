@@ -1,6 +1,7 @@
 package connector
 
 import (
+	"bufio"
 	"bytes"
 	"errors"
 	"fmt"
@@ -136,7 +137,7 @@ func (r *SSHConnector) Run(tr Task) error {
 	if err != nil {
 		return err
 	}
-	r.stdout, err = r.session.StdoutPipe()
+	stdout, err := r.session.StdoutPipe()
 	if err != nil {
 		return err
 	}
@@ -144,6 +145,9 @@ func (r *SSHConnector) Run(tr Task) error {
 	if err != nil {
 		return err
 	}
+	// setup sshpass
+	sudoPrompt := fmt.Sprintf(`[sudo via ops, id=%s] password:`, r.ID())
+	r.stdout = &passReader{host: r.host, user: r.user, password: r.password, expect: sudoPrompt, reader: bufio.NewReader(stdout), stdin: r.stdin}
 	for k, v := range tr.Environments() {
 		r.session.Setenv(k, v)
 	}
@@ -157,8 +161,8 @@ func (r *SSHConnector) Run(tr Task) error {
 		return fmt.Errorf("shell: [%s] is not supported,please use sh and bash instead", tr.Shell())
 	}
 	cmd := fmt.Sprintf("%s %s '%s'", tr.Shell(), flag, tr.Command())
-	if tr.Sudo() {
-		cmd = fmt.Sprintf(`sudo -E -p "" -S %s `, cmd)
+	if strings.Contains(cmd, "sudo") {
+		cmd = strings.ReplaceAll(cmd, "sudo", fmt.Sprintf(`sudo -E -p "%s"`, sudoPrompt))
 	}
 	cmd = envStr + " " + cmd
 	if r.debug {
@@ -184,21 +188,6 @@ func (r *SSHConnector) Run(tr Task) error {
 
 	if err := r.session.Start(cmd); err != nil {
 		return err
-	}
-	if tr.Sudo() {
-		// publickey
-		if r.password == "" {
-			fmt.Printf("%s@%s's password: ", r.user, r.host)
-			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
-				return errors.New("read password failed")
-			} else {
-				fmt.Println("")
-				r.password = string(pass)
-			}
-		}
-		if _, err := io.Copy(r.stdin, bytes.NewBuffer([]byte(r.password+"\n"))); err != nil {
-			return err
-		}
 	}
 	r.sessionOpened = true
 	return nil
@@ -273,4 +262,41 @@ func (r *SSHConnector) Signal(sig os.Signal) error {
 	default:
 		return fmt.Errorf("siginal:%v not supported", sig)
 	}
+}
+
+type passReader struct {
+	host     string
+	user     string
+	password string
+	expect   string
+	content  []byte //already readed content
+	reader   *bufio.Reader
+	stdin    io.Writer
+}
+
+func (pr *passReader) Read(data []byte) (int, error) {
+	b, err := pr.reader.ReadByte()
+	if err != nil {
+		return 0, err
+	}
+	if pr.content == nil {
+		pr.content = make([]byte, 0)
+	}
+	pr.content = append(pr.content, b)
+	if strings.Contains(string(pr.content), pr.expect) {
+		pr.content = nil
+		if pr.password == "" {
+			fmt.Printf("%s@%s's password: ", pr.user, pr.host)
+			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
+				return 0, errors.New("read password failed")
+			} else {
+				fmt.Println("")
+				pr.password = string(pass)
+			}
+		}
+		if _, err := io.Copy(pr.stdin, bytes.NewBuffer([]byte(pr.password+"\n"))); err != nil {
+			return 0, err
+		}
+	}
+	return copy(data, []byte{b}), nil
 }

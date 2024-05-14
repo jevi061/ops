@@ -66,7 +66,7 @@ tasks:
     command: make test
   upload:
     desc: upload tested project to remote
-    command: src -> dst
+    transfer: src -> dst
   deploy:
     desc: deploy tested project to remote
     command: make deploy

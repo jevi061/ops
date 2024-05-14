@@ -99,7 +99,6 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 				connector.WithCommand(cmd),
 				connector.WithEnvironments(mergedEnvs),
 				connector.WithLocal(false),
-				connector.WithSudo(task.Sudo),
 				connector.WithStdin(stdin))
 			tasks = append(tasks, t)
 
@@ -109,8 +108,7 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 				connector.WithShell(conf.Shell),
 				connector.WithCommand(task.Cmd),
 				connector.WithEnvironments(mergedEnvs),
-				connector.WithLocal(task.Local),
-				connector.WithSudo(task.Sudo))
+				connector.WithLocal(task.Local))
 			tasks = append(tasks, t)
 		}
 	} else { // invalid task

@@ -1,9 +1,8 @@
 
-computers:
+servers:
   www.example.com:
-    port: **
-    user: **
-    password: *****
+    port: 22
+    user: root
 # global environments to use when ops to run tasks or pipelines
 environments:
   WORKING_DIR: /app
@@ -22,9 +21,7 @@ tasks:
           fuck ou
   upload:
     desc: upload tested project to remote
-    upload:
-      src: .
-      dest: /app
+    transfer: . -> /app
   deploy:
     desc: deploy tested project to remote
     command: make deploy
