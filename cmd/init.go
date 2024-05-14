@@ -25,7 +25,7 @@ tasks:
   prepare:
     desc: prepare build directory for building
     command: mkdir build
-	local: true
+    local: true
   build:
     desc: build project
     command: make build
@@ -42,8 +42,7 @@ tasks:
       - prepare
       - build
       - test
-      - upload
-	`
+      - upload`
 	var initCmd = &cobra.Command{
 		Use:   "init",
 		Short: "Init a base Opsfile",
