@@ -139,7 +139,7 @@ func (r *LocalConnector) Local() bool {
 }
 func (r *LocalConnector) Signal(sig os.Signal) error {
 	if !r.running {
-		return errors.New("runner is not running")
+		return nil
 	}
 	return r.exec.Process.Signal(sig)
 }
