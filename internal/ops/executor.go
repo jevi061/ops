@@ -60,7 +60,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 	// execute tasks through connectors
 	gray, bold := color.Gray.Render, color.Bold.Render
 	green, red := color.Green.Render, color.Red.Render
-	sp := spinner.New(spinner.CharSets[11], 500*time.Millisecond, spinner.WithHiddenCursor(true), spinner.WithFinalMSG(""))
+	sp := spinner.New(spinner.CharSets[11], 100*time.Millisecond, spinner.WithHiddenCursor(true), spinner.WithFinalMSG(""))
 	for _, t := range tasks {
 		for _, c := range connectors {
 			if t.Local() == c.Local() {
