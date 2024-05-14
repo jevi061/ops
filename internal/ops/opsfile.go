@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/jevi061/ops/internal/transfer"
 	"gopkg.in/yaml.v3"
 )
 
@@ -55,22 +56,35 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 		return err
 	}
 	t.Names = tasks
+	// setup task name
 	for k, v := range t.Names {
 		if v != nil {
 			v.Name = k
+		}
+	}
+	// validate transfer
+	for k, v := range t.Names {
+		if v.Cmd != "" && v.Transfer != "" {
+			return fmt.Errorf("task: %s defined with command and transfer simultaneously", k)
+		}
+		if v.Transfer != "" {
+			if err := transfer.Validate(v.Transfer); err != nil {
+				return fmt.Errorf("invalid task: %s : %w", k, err)
+			}
 		}
 	}
 	return nil
 }
 
 type Task struct {
-	Name  string            `yaml:"name"`
-	Cmd   string            `yaml:"command"`
-	Desc  string            `yaml:"desc"`
-	Local bool              `yaml:"local"`
-	Sudo  bool              `yaml:"sudo"`
-	Envs  map[string]string `yaml:"environments"`
-	Deps  []string          `yaml:"dependencies"`
+	Name     string            `yaml:"name"`
+	Cmd      string            `yaml:"command"`
+	Transfer string            `yaml:"transfer"`
+	Desc     string            `yaml:"desc"`
+	Local    bool              `yaml:"local"`
+	Sudo     bool              `yaml:"sudo"`
+	Envs     map[string]string `yaml:"environments"`
+	Deps     []string          `yaml:"dependencies"`
 }
 
 type Environments struct {

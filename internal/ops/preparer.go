@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/jevi061/ops/internal/connector"
+	"github.com/jevi061/ops/internal/transfer"
 )
 
 type Preparer interface {
@@ -84,17 +85,13 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 		}
 		// task itself
 		mergedEnvs := mergeEnvs(conf.Environments.Envs, task.Envs)
-		if strings.Contains(task.Cmd, "->") { // upload task
-			fields := strings.Fields(task.Cmd)
-			if len(fields) != 3 {
-				return nil, fmt.Errorf("incorrect file transfer syntex,use: LOCAL_SRC -> REMOTE_DIRECTORY ")
-			}
-			absSrc, err := filepath.Abs(os.Expand(fields[0], func(s string) string { return task.Envs[s] }))
+		if task.Transfer != "" { // upload task
+			absSrc, dest, err := transfer.ParseTransferWithEnvs(task.Transfer, mergedEnvs)
 			if err != nil {
-				return nil, fmt.Errorf("resolve upload src file path failed:%w", err)
+				return nil, fmt.Errorf("invalid task: %s : %w", task.Name, err)
 			}
 			// build cmd
-			cmd := fmt.Sprintf(`tar -C %s -xvzf - `, fields[2])
+			cmd := fmt.Sprintf(`tar -C %s -xvzf - `, dest)
 			stdin := pipeFiles(absSrc)
 			t := connector.NewCommonTask(connector.WithName(task.Name),
 				connector.WithDesc(task.Desc),
