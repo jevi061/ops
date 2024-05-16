@@ -1,13 +1,7 @@
 package ops
 
 import (
-	"archive/tar"
-	"compress/gzip"
 	"fmt"
-	"io"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/jevi061/ops/internal/connector"
 	"github.com/jevi061/ops/internal/transfer"
@@ -92,7 +86,7 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 			}
 			// build cmd
 			cmd := fmt.Sprintf(`tar -C %s -xvzf - `, dest)
-			stdin := pipeFiles(absSrc)
+			stdin := transfer.PipeFile(absSrc)
 			t := connector.NewCommonTask(connector.WithName(task.Name),
 				connector.WithDesc(task.Desc),
 				connector.WithShell(conf.Shell),
@@ -126,74 +120,4 @@ func mergeEnvs(base, special map[string]string) map[string]string {
 		merged[k] = v
 	}
 	return merged
-}
-func pipeFiles(src string) func() (io.Reader, error) {
-	piper := func() (io.Reader, error) {
-		//fmt.Println("pipe file:", src)
-		pr, pw := io.Pipe()
-
-		// ensure the src actually exists before trying to tar it
-		if _, err := os.Stat(src); err != nil {
-			fmt.Fprintln(os.Stderr, err)
-			return nil, err
-		}
-
-		gzipw := gzip.NewWriter(pw)
-
-		tw := tar.NewWriter(gzipw)
-
-		go func() {
-			defer pw.Close()
-			defer gzipw.Close()
-			defer tw.Close()
-			// walk path
-			err := filepath.Walk(src, func(file string, fi os.FileInfo, err error) error {
-				// return on any error
-				if err != nil {
-					return err
-				}
-
-				if !fi.Mode().IsRegular() {
-					return nil
-				}
-
-				// create a new dir/file header
-				header, err := tar.FileInfoHeader(fi, fi.Name())
-				if err != nil {
-					return err
-				}
-				pre := filepath.Dir(src)
-				// update the name to correctly reflect the desired destination when untaring
-				header.Name = strings.TrimPrefix(strings.Replace(file, pre, "", -1), string(os.PathSeparator))
-				header.Name = strings.Replace(header.Name, string(os.PathSeparator), "/", -1)
-
-				// write the header
-				if err := tw.WriteHeader(header); err != nil {
-					return err
-				}
-
-				// open files for taring
-				f, err := os.Open(file)
-				if err != nil {
-					return err
-				}
-
-				// copy file data into tar writer
-				if _, err := io.Copy(tw, f); err != nil {
-					return err
-				}
-
-				// manually close here after each file operation; defering would cause each file close
-				// to wait until all operations have completed.
-				return f.Close()
-			})
-			if err != nil {
-				fmt.Fprintln(os.Stderr, err)
-			}
-		}()
-
-		return pr, nil
-	}
-	return piper
-
 }
