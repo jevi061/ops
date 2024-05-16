@@ -22,7 +22,6 @@ type LocalConnector struct {
 	stderr  io.ReadCloser
 	stdin   io.WriteCloser
 	promet  string
-	debug   bool // running in debug mode or not
 }
 
 var shellCommandArgs = map[string]string{
@@ -58,7 +57,7 @@ func (r *LocalConnector) Stderr() io.Reader {
 	return r.stderr
 }
 
-func (r *LocalConnector) Run(tr Task) error {
+func (r *LocalConnector) Run(tr Task, options *RunOptions) error {
 	if r.running {
 		return errors.New("runner is already running")
 	}
@@ -89,11 +88,13 @@ func (r *LocalConnector) Run(tr Task) error {
 	if err != nil {
 		return err
 	}
-	if r.debug {
+	if options.Debug || options.DryRun {
 		fmt.Printf("%s%s %s %s\n", r.Promet(), tr.Shell(), flag, tr.Command())
 	}
-	if err := r.exec.Start(); err != nil {
-		return err
+	if !options.DryRun {
+		if err := r.exec.Start(); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -124,13 +125,7 @@ func (r *LocalConnector) SetPromet(promet string) {
 func (r *LocalConnector) Host() string {
 	return r.host
 }
-func (r *LocalConnector) Debug() bool {
-	return r.debug
-}
 
-func (r *LocalConnector) SetDebug(debug bool) {
-	r.debug = debug
-}
 func (r *LocalConnector) ID() string {
 	return r.id
 }

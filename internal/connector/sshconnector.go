@@ -31,7 +31,6 @@ type SSHConnector struct {
 	stderr        io.Reader
 	sessionOpened bool
 	promet        string // output prefix
-	debug         bool   // run job in debug mode or not
 }
 type SSHTaskRunnerOption func(*SSHConnector)
 
@@ -122,7 +121,7 @@ func (r *SSHConnector) Connect() error {
 	r.conn = conn
 	return nil
 }
-func (r *SSHConnector) Run(tr Task) error {
+func (r *SSHConnector) Run(tr Task, options *RunOptions) error {
 
 	if r.sessionOpened {
 		return errors.New("another seesion is using")
@@ -165,7 +164,7 @@ func (r *SSHConnector) Run(tr Task) error {
 		cmd = strings.ReplaceAll(cmd, "sudo", fmt.Sprintf(`sudo -E -p "%s"`, sudoPrompt))
 	}
 	cmd = envStr + " " + cmd
-	if r.debug {
+	if options.Debug || options.DryRun {
 		fmt.Printf("%s%s\n", r.Promet(), cmd)
 	}
 	if tr.Stdin() == nil {
@@ -185,9 +184,10 @@ func (r *SSHConnector) Run(tr Task) error {
 		}
 
 	}
-
-	if err := r.session.Start(cmd); err != nil {
-		return err
+	if !options.DryRun {
+		if err := r.session.Start(cmd); err != nil {
+			return err
+		}
 	}
 	r.sessionOpened = true
 	return nil
@@ -236,13 +236,6 @@ func (r *SSHConnector) Host() string {
 	return r.host
 }
 
-func (r *SSHConnector) Debug() bool {
-	return r.debug
-}
-
-func (r *SSHConnector) SetDebug(debug bool) {
-	r.debug = debug
-}
 func (r *SSHConnector) ID() string {
 	return r.id
 }

@@ -29,10 +29,9 @@ func NewExecutor(conf *Opsfile, debug bool, dryRun bool) *cliExecutor {
 }
 func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Connector) error {
 	hasRemoteTask := e.hasRemoteTask(tasks)
-	// setup running modes and connect
+	// connect
 	for _, c := range connectors {
 		if !(!c.Local() && !hasRemoteTask) {
-			c.SetDebug(e.debug)
 			if err := c.Connect(); err != nil {
 				return err
 			} else {
@@ -58,24 +57,24 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 		e.AlignAndColorTaskRunnersPromets(connectors)
 	}
 	// execute tasks through connectors
-	gray, bold := color.Gray.Render, color.Bold.Render
 	green, red := color.Green.Render, color.Red.Render
 	sp := spinner.New(spinner.CharSets[11], 100*time.Millisecond, spinner.WithHiddenCursor(true), spinner.WithFinalMSG(""))
 	for _, t := range tasks {
 		for _, c := range connectors {
 			if t.Local() == c.Local() {
-				fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(t.Name()), gray(t.Desc()))
-				e.PrintDivider('-')
-				if !e.dryRun {
-					//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
+				e.PrintTaskHeader(t, '-')
+				//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
+				if !e.debug && !e.dryRun {
 					sp.Start()
-					if err := c.Run(t); err != nil {
-						if e.conf.FailFast {
-							return err
-						} else {
-							fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
-						}
+				}
+				if err := c.Run(t, &connector.RunOptions{Debug: e.debug, DryRun: e.dryRun}); err != nil {
+					if e.conf.FailFast {
+						return err
+					} else {
+						fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
 					}
+				}
+				if !e.dryRun {
 					if err := e.HandleInputAndOutput(t, c); err != nil {
 						if e.conf.FailFast {
 							return err
@@ -92,6 +91,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 						fmt.Printf("Server: [%s] Status: %s\n", c.Host(), green("Success"))
 					}
 				}
+
 			}
 		}
 	}
@@ -204,7 +204,9 @@ func (e *cliExecutor) hasRemoteTask(tasks []connector.Task) bool {
 	return false
 }
 
-func (e *cliExecutor) PrintDivider(divider byte) {
+func (e *cliExecutor) PrintTaskHeader(t connector.Task, divider byte) {
+	gray, bold := color.Gray.Render, color.Bold.Render
+	fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(t.Name()), gray(t.Desc()))
 	w, _ := termsize.DefaultSize(10, 0)
 	fmt.Println(strings.Repeat(string(divider), w))
 }

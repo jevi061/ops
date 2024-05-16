@@ -11,7 +11,7 @@ type Connector interface {
 	Local() bool
 	Connect() error
 	Close() error
-	Run(Task) error
+	Run(Task, *RunOptions) error
 	Wait() error
 	Stdin() io.WriteCloser
 	Stderr() io.Reader
@@ -19,7 +19,10 @@ type Connector interface {
 	Promet() string
 	SetPromet(string)
 	Host() string
-	Debug() bool
-	SetDebug(bool)
 	Signal(os.Signal) error
+}
+
+type RunOptions struct {
+	Debug  bool
+	DryRun bool
 }
