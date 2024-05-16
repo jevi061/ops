@@ -53,7 +53,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 		close(signals)
 	}()
 	// update prompets
-	if e.debug {
+	if e.debug || e.dryRun {
 		e.AlignAndColorTaskRunnersPromets(connectors)
 	}
 	// execute tasks through connectors

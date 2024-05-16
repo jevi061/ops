@@ -37,7 +37,7 @@ func (r *LocalConnector) Connect() error {
 	if err != nil {
 		return err
 	}
-	r.user = u.Name
+	r.user = u.Username
 	return nil
 }
 
@@ -59,9 +59,11 @@ func (r *LocalConnector) Stderr() io.Reader {
 
 func (r *LocalConnector) Run(tr Task, options *RunOptions) error {
 	if r.running {
-		return errors.New("runner is already running")
+		return errors.New("connector is already running")
 	}
-	r.running = true
+	if !options.DryRun {
+		r.running = true
+	}
 	flag, ok := shellCommandArgs[tr.Shell()]
 	if !ok {
 		return fmt.Errorf("shell: [%s] is not supported, please use sh、bash instead", tr.Shell())

@@ -122,10 +122,35 @@ func (r *SSHConnector) Connect() error {
 	return nil
 }
 func (r *SSHConnector) Run(tr Task, options *RunOptions) error {
-
 	if r.sessionOpened {
 		return errors.New("another seesion is using")
 	}
+	// prepare cmd
+	for k, v := range tr.Environments() {
+		r.session.Setenv(k, v)
+	}
+	envs := make([]string, 0)
+	for k, v := range tr.Environments() {
+		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
+	}
+	envStr := strings.Join(envs, " ")
+	flag, ok := shellCommandArgs[tr.Shell()]
+	if !ok {
+		return fmt.Errorf("shell: [%s] is not supported,please use sh and bash instead", tr.Shell())
+	}
+	cmd := fmt.Sprintf("%s %s '%s'", tr.Shell(), flag, tr.Command())
+	sudoPrompt := fmt.Sprintf(`[sudo via ops, id=%s] password:`, r.ID())
+	if strings.Contains(cmd, "sudo") {
+		cmd = strings.ReplaceAll(cmd, "sudo", fmt.Sprintf(`sudo -E -p "%s"`, sudoPrompt))
+	}
+	cmd = envStr + " " + cmd
+	if options.Debug || options.DryRun {
+		fmt.Printf("%s%s\n", r.Promet(), cmd)
+		if options.DryRun {
+			return nil
+		}
+	}
+	// prepare session
 	session, err := r.conn.NewSession()
 	if err != nil {
 		return err
@@ -145,28 +170,8 @@ func (r *SSHConnector) Run(tr Task, options *RunOptions) error {
 		return err
 	}
 	// setup sshpass
-	sudoPrompt := fmt.Sprintf(`[sudo via ops, id=%s] password:`, r.ID())
 	r.stdout = &passReader{host: r.host, user: r.user, password: r.password, expect: sudoPrompt, reader: bufio.NewReader(stdout), stdin: r.stdin}
-	for k, v := range tr.Environments() {
-		r.session.Setenv(k, v)
-	}
-	jenvs := make([]string, 0)
-	for k, v := range tr.Environments() {
-		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
-	}
-	envStr := strings.Join(jenvs, " ")
-	flag, ok := shellCommandArgs[tr.Shell()]
-	if !ok {
-		return fmt.Errorf("shell: [%s] is not supported,please use sh and bash instead", tr.Shell())
-	}
-	cmd := fmt.Sprintf("%s %s '%s'", tr.Shell(), flag, tr.Command())
-	if strings.Contains(cmd, "sudo") {
-		cmd = strings.ReplaceAll(cmd, "sudo", fmt.Sprintf(`sudo -E -p "%s"`, sudoPrompt))
-	}
-	cmd = envStr + " " + cmd
-	if options.Debug || options.DryRun {
-		fmt.Printf("%s%s\n", r.Promet(), cmd)
-	}
+
 	if tr.Stdin() == nil {
 		// request pty
 		// Set up terminal modes
@@ -184,12 +189,10 @@ func (r *SSHConnector) Run(tr Task, options *RunOptions) error {
 		}
 
 	}
-	if !options.DryRun {
-		if err := r.session.Start(cmd); err != nil {
-			return err
-		}
+
+	if err := r.session.Start(cmd); err != nil {
+		return err
 	}
-	r.sessionOpened = true
 	return nil
 
 }
