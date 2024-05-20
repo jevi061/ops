@@ -39,6 +39,6 @@ func NewRunCmd() *cobra.Command {
 	runCmd.Flags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
 	runCmd.Flags().BoolVarP(&debug, "debug", "d", false, "run tasks in debug mode")
 	runCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "test task without applying changes")
-	runCmd.Flags().StringArrayVarP(&envs, "env", "e", []string{}, "env vars")
+	runCmd.Flags().StringArrayVarP(&envs, "env", "e", []string{}, "run with env vars, eg: USER=root")
 	return runCmd
 }
