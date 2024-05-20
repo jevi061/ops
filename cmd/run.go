@@ -13,6 +13,7 @@ var (
 	opsfile string
 	debug   bool
 	dryRun  bool
+	envs    []string
 )
 
 func NewRunCmd() *cobra.Command {
@@ -22,7 +23,7 @@ func NewRunCmd() *cobra.Command {
 		Short: "Run tasks",
 		Long:  `Run tasks defined in Opsfile, eg: ops run task1 task2 ...`,
 		Run: func(cmd *cobra.Command, args []string) {
-			conf, err := ops.NewOpsfileFromPath(opsfile)
+			conf, err := ops.NewOpsfileFromPathAndEnvVars(opsfile, envs)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)
 				os.Exit(1)
@@ -38,5 +39,6 @@ func NewRunCmd() *cobra.Command {
 	runCmd.PersistentFlags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
 	runCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "run tasks in debug mode")
 	runCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "", false, "test task without applying changes")
+	runCmd.Flags().StringArrayVarP(&envs, "env", "e", []string{}, "env vars")
 	return runCmd
 }

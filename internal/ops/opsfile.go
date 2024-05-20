@@ -111,6 +111,10 @@ func NewOpsfile(data []byte) (*Opsfile, error) {
 	if err := yaml.Unmarshal(data, &file); err != nil {
 		return nil, err
 	}
+	// merge task environments
+	for _, t := range file.Tasks.Names {
+		t.Envs = mergeEnvs(file.Environments.Envs, t.Envs)
+	}
 	return &file, nil
 }
 
@@ -124,4 +128,43 @@ func NewOpsfileFromPath(path string) (*Opsfile, error) {
 		conf, err := NewOpsfile(data)
 		return conf, err
 	}
+}
+
+func NewOpsfileFromPathAndEnvs(path string, envs map[string]string) (*Opsfile, error) {
+	if _, err := os.Stat(path); err != nil {
+		return nil, err
+	}
+	if data, err := os.ReadFile(path); err != nil {
+		return nil, err
+	} else {
+		conf, err := NewOpsfile(data)
+		for _, t := range conf.Tasks.Names {
+			t.Envs = mergeEnvs(t.Envs, envs)
+		}
+		return conf, err
+	}
+}
+
+func NewOpsfileFromPathAndEnvVars(path string, envVars []string) (*Opsfile, error) {
+	envs := make(map[string]string, len(envVars))
+	for _, evar := range envVars {
+		pair := strings.Split(evar, "=")
+		if len(pair) != 2 {
+			return nil, fmt.Errorf("invalid env pair format: %s", evar)
+		}
+		envs[pair[0]] = pair[1]
+	}
+	return NewOpsfileFromPathAndEnvs(path, envs)
+}
+
+// mergeEnvs appliy prioritied envs to base envs
+func mergeEnvs(base, special map[string]string) map[string]string {
+	merged := make(map[string]string, len(base)+len(special))
+	for k, v := range base {
+		merged[k] = v
+	}
+	for k, v := range special {
+		merged[k] = v
+	}
+	return merged
 }

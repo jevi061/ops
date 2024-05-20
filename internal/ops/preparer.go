@@ -78,9 +78,8 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 			}
 		}
 		// task itself
-		mergedEnvs := mergeEnvs(conf.Environments.Envs, task.Envs)
 		if task.Transfer != "" { // upload task
-			absSrc, dest, err := transfer.ParseTransferWithEnvs(task.Transfer, mergedEnvs)
+			absSrc, dest, err := transfer.ParseTransferWithEnvs(task.Transfer, task.Envs)
 			if err != nil {
 				return nil, fmt.Errorf("invalid task: %s : %w", task.Name, err)
 			}
@@ -91,7 +90,7 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 				connector.WithDesc(task.Desc),
 				connector.WithShell(conf.Shell),
 				connector.WithCommand(cmd),
-				connector.WithEnvironments(mergedEnvs),
+				connector.WithEnvironments(task.Envs),
 				connector.WithLocal(false),
 				connector.WithStdin(stdin))
 			tasks = append(tasks, t)
@@ -101,7 +100,7 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 				connector.WithDesc(task.Desc),
 				connector.WithShell(conf.Shell),
 				connector.WithCommand(task.Cmd),
-				connector.WithEnvironments(mergedEnvs),
+				connector.WithEnvironments(task.Envs),
 				connector.WithLocal(task.Local))
 			tasks = append(tasks, t)
 		}
@@ -110,14 +109,4 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 	}
 	return tasks, nil
 
-}
-func mergeEnvs(base, special map[string]string) map[string]string {
-	merged := make(map[string]string, len(base)+len(special))
-	for k, v := range base {
-		merged[k] = v
-	}
-	for k, v := range special {
-		merged[k] = v
-	}
-	return merged
 }
