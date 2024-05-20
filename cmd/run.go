@@ -35,10 +35,10 @@ func NewRunCmd() *cobra.Command {
 			}
 		},
 	}
-	runCmd.PersistentFlags().StringVarP(&tag, "tag", "t", "", "server tag")
-	runCmd.PersistentFlags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
-	runCmd.PersistentFlags().BoolVarP(&debug, "debug", "d", false, "run tasks in debug mode")
-	runCmd.PersistentFlags().BoolVarP(&dryRun, "dry-run", "", false, "test task without applying changes")
+	runCmd.Flags().StringVarP(&tag, "tag", "t", "", "server tag")
+	runCmd.Flags().StringVarP(&opsfile, "opsfile", "f", "./Opsfile.yml", "opsfile")
+	runCmd.Flags().BoolVarP(&debug, "debug", "d", false, "run tasks in debug mode")
+	runCmd.Flags().BoolVarP(&dryRun, "dry-run", "", false, "test task without applying changes")
 	runCmd.Flags().StringArrayVarP(&envs, "env", "e", []string{}, "env vars")
 	return runCmd
 }
