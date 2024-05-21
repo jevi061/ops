@@ -86,7 +86,7 @@ func (r *SSHConnector) Connect() error {
 	if len(authMethods) <= 0 {
 		fmt.Printf("%s@%s's password: ", r.user, r.host)
 		if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
-			return errors.New("read password failed")
+			return fmt.Errorf("read password failed: %w", err)
 		} else {
 			fmt.Println("")
 			r.password = string(pass)
@@ -104,7 +104,7 @@ func (r *SSHConnector) Connect() error {
 		if strings.Contains(err.Error(), "unable to authenticate") && !strings.Contains(err.Error(), "password") {
 			fmt.Printf("%s@%s's password: ", r.user, r.host)
 			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
-				return errors.New("read password failed")
+				return fmt.Errorf("read password failed: %w", err)
 			} else {
 				fmt.Println("")
 				r.password = string(pass)
@@ -285,7 +285,7 @@ func (pr *passReader) Read(data []byte) (int, error) {
 		if pr.password == "" {
 			fmt.Printf("%s@%s's password: ", pr.user, pr.host)
 			if pass, err := term.ReadPassword(int(os.Stdin.Fd())); err != nil {
-				return 0, errors.New("read password failed")
+				return 0, fmt.Errorf("read password failed: %w", err)
 			} else {
 				fmt.Println("")
 				pr.password = string(pass)
