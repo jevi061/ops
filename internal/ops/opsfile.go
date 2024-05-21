@@ -159,7 +159,7 @@ func NewOpsfileFromPathAndEnvVars(path string, envVars []string) (*Opsfile, erro
 
 // mergeEnvs appliy prioritied envs to base envs
 func mergeEnvs(base, special map[string]string) map[string]string {
-	merged := make(map[string]string, len(base)+len(special))
+	merged := make(map[string]string, 0)
 	for k, v := range base {
 		merged[k] = v
 	}
