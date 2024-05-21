@@ -42,7 +42,6 @@ $ ops ssh SERVER
 The manifest file for instructing ops to run, in which you can define ssh servers,tasks, and environments .
 When ops starts to run, it looks for the file in the current directory. You can also set the path of Opsfile using flag -f or --opsfile.
 ```yaml
-version: "1.0"
 shell: bash
 fail-fast: true
 servers:
@@ -105,6 +104,8 @@ tasks:
   task-name:
     # command or script of the task
     command: 
+    # transfer file or directory between local and server
+    transfer: 
     # task description
     desc:
     # run on local or remote, type: boolean
@@ -114,6 +115,6 @@ tasks:
 
 
 
-# Licence
+## Licence
 
 Licensed under the [MIT License](./LICENSE).
