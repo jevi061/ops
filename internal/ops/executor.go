@@ -60,7 +60,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 	}()
 	// update prompets
 	if e.debug || e.dryRun {
-		e.AlignAndColorTaskRunnersPromets(connectors)
+		e.AlignAndColorConnectorPromets(connectors)
 	}
 	// execute tasks through connectors
 
@@ -170,7 +170,7 @@ func (e *cliExecutor) HandleInputAndOutput(task connector.Task, c connector.Conn
 	return nil
 }
 
-func (e *cliExecutor) AlignAndColorTaskRunnersPromets(connectors []connector.Connector) {
+func (e *cliExecutor) AlignAndColorConnectorPromets(connectors []connector.Connector) {
 	// align and color connector promets
 	colors := []func(a ...interface{}) string{color.Yellow.Render, color.Cyan.Render,
 		color.Magenta.Render, color.Blue.Render}
