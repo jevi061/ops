@@ -83,7 +83,7 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 					}
 					sp.Stop()
 					if err := c.Wait(); err != nil {
-						fmt.Printf("Server: [%s] Status: %s Reason: %s\n", c.Host(), red("Error"), red(err.Error()))
+						fmt.Printf("Server: [%s] Status: %s Reason: %s\n", c.Host(), red("Failure"), red(err.Error()))
 						if e.conf.FailFast {
 							return err
 						}
