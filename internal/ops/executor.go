@@ -24,10 +24,16 @@ type cliExecutor struct {
 	dryRun bool
 }
 
+var (
+	gray, bold = color.Gray.Render, color.Bold.Render
+	green, red = color.Green.Render, color.Red.Render
+)
+
 func NewExecutor(conf *Opsfile, debug bool, dryRun bool) *cliExecutor {
 	return &cliExecutor{conf: conf, debug: debug, dryRun: dryRun}
 }
 func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Connector) error {
+	printer := newExecPrinter(tasks, connectors)
 	hasRemoteTask := e.hasRemoteTask(tasks)
 	// connect
 	for _, c := range connectors {
@@ -57,21 +63,22 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 		e.AlignAndColorTaskRunnersPromets(connectors)
 	}
 	// execute tasks through connectors
-	green, red := color.Green.Render, color.Red.Render
+
 	sp := spinner.New(spinner.CharSets[11], 100*time.Millisecond, spinner.WithHiddenCursor(true), spinner.WithFinalMSG(""))
 	for _, t := range tasks {
 		for _, c := range connectors {
 			if t.Local() == c.Local() {
-				e.PrintTaskHeader(t, '-')
+				printer.PrintTaskHeader(t, '-')
 				//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
 				if !e.debug && !e.dryRun {
 					sp.Start()
 				}
+				startAt := time.Now()
 				if err := c.Run(t, &connector.RunOptions{Debug: e.debug, DryRun: e.dryRun}); err != nil {
 					if e.conf.FailFast {
 						return err
 					} else {
-						fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
+						fmt.Fprintln(os.Stderr, red(err.Error()))
 					}
 				}
 				if !e.dryRun {
@@ -79,19 +86,15 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 						if e.conf.FailFast {
 							return err
 						}
-						fmt.Fprintln(os.Stderr, color.Red.Render(err.Error()))
+						fmt.Fprintln(os.Stderr, red(err.Error()))
 					}
 					sp.Stop()
-					if err := c.Wait(); err != nil {
-						fmt.Printf("Server: [%s] Status: %s Reason: %s\n", c.Host(), red("Failure"), red(err.Error()))
-						if e.conf.FailFast {
-							return err
-						}
-					} else {
-						fmt.Printf("Server: [%s] Status: %s\n", c.Host(), green("Success"))
+					err := c.Wait()
+					printer.PrintTaskStatus(startAt, c.Host(), t, err)
+					if err != nil && e.conf.FailFast {
+						return err
 					}
 				}
-
 			}
 		}
 	}
@@ -204,9 +207,52 @@ func (e *cliExecutor) hasRemoteTask(tasks []connector.Task) bool {
 	return false
 }
 
-func (e *cliExecutor) PrintTaskHeader(t connector.Task, divider byte) {
-	gray, bold := color.Gray.Render, color.Bold.Render
-	fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(t.Name()), gray(t.Desc()))
+func (p *execPrinter) PrintTaskHeader(t connector.Task, divider byte) {
+	name := t.Name()
+	l := runewidth.StringWidth(t.Name())
+	if l < p.maxTaskNameLength {
+		name = name + strings.Repeat(" ", p.maxTaskNameLength-l)
+	}
+	fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(name), gray(t.Desc()))
 	w, _ := termsize.DefaultSize(10, 0)
 	fmt.Println(strings.Repeat(string(divider), w))
+}
+
+func (p *execPrinter) PrintTaskStatus(startAt time.Time, host string, t connector.Task, err error) {
+	dura := time.Since(startAt)
+	serverHost := host
+	w := runewidth.StringWidth(serverHost)
+	if w < p.maxConnHostLength {
+		serverHost = serverHost + strings.Repeat(" ", p.maxConnHostLength-w)
+	}
+	if err != nil {
+		fmt.Printf("Server: %s    Status: %s    Time: %s    Reason: %s\n", serverHost, red("Failure"), dura, red(err.Error()))
+
+	} else {
+		fmt.Printf("Server: %s    Status: %s    Time: %s\n", serverHost, green("Success"), dura)
+	}
+}
+
+type execPrinter struct {
+	tasks             []connector.Task
+	connectors        []connector.Connector
+	maxTaskNameLength int
+	maxConnHostLength int
+}
+
+func newExecPrinter(tasks []connector.Task, connectors []connector.Connector) *execPrinter {
+	maxTaskNameLength, maxConnHostLength := 0, 0
+	for _, task := range tasks {
+		w := runewidth.StringWidth(task.Name())
+		if w > maxTaskNameLength {
+			maxTaskNameLength = w
+		}
+	}
+	for _, conn := range connectors {
+		w := runewidth.StringWidth(conn.Host())
+		if w > maxConnHostLength {
+			maxConnHostLength = w
+		}
+	}
+	return &execPrinter{tasks: tasks, connectors: connectors, maxTaskNameLength: maxTaskNameLength, maxConnHostLength: maxConnHostLength}
 }
