@@ -126,9 +126,6 @@ func (r *SSHConnector) Run(tr Task, options *RunOptions) error {
 		return errors.New("another seesion is using")
 	}
 	// prepare cmd
-	for k, v := range tr.Environments() {
-		r.session.Setenv(k, v)
-	}
 	envs := make([]string, 0)
 	for k, v := range tr.Environments() {
 		envs = append(envs, fmt.Sprintf("%s=%s", k, v))
@@ -168,6 +165,10 @@ func (r *SSHConnector) Run(tr Task, options *RunOptions) error {
 	r.stderr, err = r.session.StderrPipe()
 	if err != nil {
 		return err
+	}
+	// setup envs
+	for k, v := range tr.Environments() {
+		r.session.Setenv(k, v)
 	}
 	// setup sshpass
 	r.stdout = &passReader{host: r.host, user: r.user, password: r.password, expect: sudoPrompt, reader: bufio.NewReader(stdout), stdin: r.stdin}
