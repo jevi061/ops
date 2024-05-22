@@ -45,8 +45,8 @@ tasks:
       - upload`
 	var initCmd = &cobra.Command{
 		Use:   "init",
-		Short: "Init a base Opsfile",
-		Long:  `Create an example Opsfile`,
+		Short: "Create a base Opsfile to start with",
+		Long:  `Create an example Opsfile in current directory if not exist`,
 		Run: func(cmd *cobra.Command, args []string) {
 			_, err := os.Stat(opsfile)
 			if !errors.Is(err, os.ErrNotExist) {
