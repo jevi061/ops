@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"bytes"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -37,7 +38,8 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 	hasRemoteTask := e.hasRemoteTask(tasks)
 	// connect
 	for _, c := range connectors {
-		if !(!c.Local() && !hasRemoteTask) {
+		remoteTaskWithoutConnectors := (!c.Local() && !hasRemoteTask)
+		if !remoteTaskWithoutConnectors {
 			if err := c.Connect(); err != nil {
 				return err
 			} else {
@@ -82,15 +84,10 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 					}
 				}
 				if !e.dryRun {
-					if err := e.HandleInputAndOutput(t, c); err != nil {
-						if e.conf.FailFast {
-							return err
-						}
-						fmt.Fprintln(os.Stderr, red(err.Error()))
-					}
+					output := e.HandleInputAndOutput(t, c)
 					sp.Stop()
 					err := c.Wait()
-					printer.PrintTaskStatus(startAt, c.Host(), t, err)
+					printer.PrintTaskStatus(startAt, c.Host(), t, err, output)
 					if err != nil && e.conf.FailFast {
 						return err
 					}
@@ -118,8 +115,12 @@ func (e *cliExecutor) RelaySignals(runners []connector.Connector, signals chan o
 	}
 }
 
-func (e *cliExecutor) HandleInputAndOutput(task connector.Task, c connector.Connector) error {
+func (e *cliExecutor) HandleInputAndOutput(task connector.Task, c connector.Connector) string {
 	var wg sync.WaitGroup
+	var (
+		errOutput bytes.Buffer
+		outOutput bytes.Buffer
+	)
 	if e.debug {
 		// copy remote computer's stdout to current
 		wg.Add(1)
@@ -141,22 +142,26 @@ func (e *cliExecutor) HandleInputAndOutput(task connector.Task, c connector.Conn
 		}(c)
 	} else {
 		// discard stdout
-		wg.Add(1)
+		wg.Add(2)
 		go func(rn connector.Connector) {
 			defer wg.Done()
-			io.Copy(io.Discard, rn.Stdout())
+			if _, err := io.Copy(&outOutput, rn.Stdout()); err != nil {
+				fmt.Println("copy stdout error:", err)
+			}
 		}(c)
 		// discard stderr
-		wg.Add(1)
 		go func(rn connector.Connector) {
 			defer wg.Done()
-			io.Copy(io.Discard, rn.Stderr())
+			if _, err := io.Copy(&errOutput, rn.Stderr()); err != nil {
+				fmt.Println("copy stderr error:", err)
+			}
 		}(c)
 	}
 	if task.Stdin() != nil {
 		stdin, err := task.Stdin()()
 		if err != nil {
-			return err
+			fmt.Fprintln(os.Stderr, err)
+			return outOutput.String() + errOutput.String()
 		}
 		wg.Add(1)
 		go func(rn connector.Connector) {
@@ -167,7 +172,7 @@ func (e *cliExecutor) HandleInputAndOutput(task connector.Task, c connector.Conn
 		}(c)
 	}
 	wg.Wait()
-	return nil
+	return outOutput.String() + errOutput.String()
 }
 
 func (e *cliExecutor) AlignAndColorConnectorPromets(connectors []connector.Connector) {
@@ -218,7 +223,7 @@ func (p *execPrinter) PrintTaskHeader(t connector.Task, divider byte) {
 	fmt.Println(strings.Repeat(string(divider), w))
 }
 
-func (p *execPrinter) PrintTaskStatus(startAt time.Time, host string, t connector.Task, err error) {
+func (p *execPrinter) PrintTaskStatus(startAt time.Time, host string, t connector.Task, err error, output string) {
 	dura := time.Since(startAt)
 	serverHost := host
 	w := runewidth.StringWidth(serverHost)
@@ -227,7 +232,7 @@ func (p *execPrinter) PrintTaskStatus(startAt time.Time, host string, t connecto
 	}
 	if err != nil {
 		fmt.Printf("Server: %s    Status: %s    Time: %s    Reason: %s\n", serverHost, red("Failure"), dura, red(err.Error()))
-
+		fmt.Println(red(output))
 	} else {
 		fmt.Printf("Server: %s    Status: %s    Time: %s\n", serverHost, green("Success"), dura)
 	}
