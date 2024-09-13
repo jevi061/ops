@@ -1,6 +1,6 @@
 ## Ops
 
-A simple pipeline tool that allows you to run shell commands on local or remote ssh servers.
+A simple pipeline tool that allows you to run shell commands on local and remote ssh servers.
 
 
 ## Installation
@@ -75,26 +75,24 @@ tasks:
       - test
       - upload
 ```
-#### version
-Version of Opsfile specifiction.
 
-#### shell
+#### shell (Optional)
 
-Set shell program for ops to use. Here are only 3 are supported:
+Set shell program for ops to use. Here are only 2 are supported:
 - sh
 - bash
-#### fail-fast
+#### fail-fast (Optioal)
 
-Exit immediately when meet any error
+Exit immediately when meet any error.
 
 
 #### servers
 
-Visitable servers where tasks to run on. As ops using ssh underline, servers must have sshd run and be available to visit.
+Accessable servers where tasks to run on. As ops using ssh underline, servers must have sshd run and be available to visit.
 
 #### tasks
 
-Simple abstract of shell commands, which you can run on local or remote servers. Task is minmium unit to be executed in ops. 
+Simple abstract of shell commands, which you can run on local and remote servers. Task is minmium unit to be executed in ops. 
 
 Each task could have its own environments defined under the task section in Opsfile, and task-associated environments will override global environments when conflicts. Example:
 
@@ -103,13 +101,11 @@ tasks:
   # task name
   task-name:
     # command or script of the task
-    command: 
-    # transfer file or directory between local and server
-    transfer: 
+    command: echo hello
     # task description
     desc:
     # run on local or remote, type: boolean
-    local: 
+    local: true
 
 ```
 
