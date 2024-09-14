@@ -72,12 +72,14 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 	for _, t := range tasks {
 		for _, c := range connectors {
 			if t.Local() == c.Local() {
-				printer.PrintTaskHeader(t, '-')
+				printer.PrintTaskHeader(t, '·')
 				//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
 				if !e.debug && !e.dryRun {
 					shouldConfirm := t.Prompt() != "" && !e.alwaysConfirm
-					if !(shouldConfirm && askForConfirmation(t.Prompt())) {
-						return nil
+					if shouldConfirm {
+						if !askForConfirmation(t.Prompt()) {
+							return nil
+						}
 					}
 					sp.Start()
 				}
@@ -219,14 +221,17 @@ func (e *cliExecutor) hasRemoteTask(tasks []connector.Task) bool {
 }
 
 func (p *execPrinter) PrintTaskHeader(t connector.Task, divider byte) {
+	fmt.Println()
 	name := t.Name()
-	l := runewidth.StringWidth(t.Name())
-	if l < p.maxTaskNameLength {
-		name = name + strings.Repeat(" ", p.maxTaskNameLength-l)
-	}
-	fmt.Printf("%s [%s] %s\n", bold("Task:"), bold(name), gray(t.Desc()))
+	title := fmt.Sprintf("%s [%s] %s", bold("Task"), bold(name), t.Desc())
+	titleLen := runewidth.StringWidth(title)
 	w, _ := termsize.DefaultSize(10, 0)
-	fmt.Println(strings.Repeat(string(divider), w))
+	suffix := ""
+	suffixLen := w - titleLen
+	if suffixLen > 0 {
+		suffix = strings.Repeat(gray(string(divider)), suffixLen)
+	}
+	fmt.Printf("%s %s\n", title, suffix)
 }
 
 func (p *execPrinter) PrintTaskStatus(startAt time.Time, host string, t connector.Task, err error, output string) {
