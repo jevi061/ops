@@ -78,6 +78,7 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 type Task struct {
 	Name     string            `yaml:"name"`
 	Cmd      string            `yaml:"command"`
+	Prompt   string            `yaml:"prompt"`
 	Transfer string            `yaml:"transfer"`
 	Desc     string            `yaml:"desc"`
 	Local    bool              `yaml:"local"`

@@ -1,6 +1,7 @@
 package ops
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"hash/fnv"
@@ -20,9 +21,10 @@ import (
 )
 
 type cliExecutor struct {
-	conf   *Opsfile
-	debug  bool
-	dryRun bool
+	conf          *Opsfile
+	debug         bool
+	dryRun        bool
+	alwaysConfirm bool
 }
 
 var (
@@ -30,8 +32,8 @@ var (
 	green, red = color.Green.Render, color.Red.Render
 )
 
-func NewExecutor(conf *Opsfile, debug bool, dryRun bool) *cliExecutor {
-	return &cliExecutor{conf: conf, debug: debug, dryRun: dryRun}
+func NewExecutor(conf *Opsfile, debug bool, dryRun bool, alwaysConfirm bool) *cliExecutor {
+	return &cliExecutor{conf: conf, debug: debug, dryRun: dryRun, alwaysConfirm: alwaysConfirm}
 }
 func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Connector) error {
 	printer := newExecPrinter(tasks, connectors)
@@ -73,6 +75,10 @@ func (e *cliExecutor) Execute(tasks []connector.Task, connectors []connector.Con
 				printer.PrintTaskHeader(t, '-')
 				//fmt.Printf("run task: [%s] on connector: [%s]\n", t.Name(), c.Host())
 				if !e.debug && !e.dryRun {
+					shouldConfirm := t.Prompt() != "" && !e.alwaysConfirm
+					if !(shouldConfirm && askForConfirmation(t.Prompt())) {
+						return nil
+					}
 					sp.Start()
 				}
 				startAt := time.Now()
@@ -260,4 +266,23 @@ func newExecPrinter(tasks []connector.Task, connectors []connector.Connector) *e
 		}
 	}
 	return &execPrinter{tasks: tasks, connectors: connectors, maxTaskNameLength: maxTaskNameLength, maxConnHostLength: maxConnHostLength}
+}
+
+// askForConfirmation asks the user for confirmation. A user must type in "yes" or "no" and
+// then press enter. It has fuzzy matching, so "y", "Y", "yes", "YES", and "Yes" all count as
+// confirmations. If the input is not recognized, it will consider it as no.
+func askForConfirmation(s string) bool {
+	reader := bufio.NewReader(os.Stdin)
+	fmt.Printf("%s [y/n]: ", s)
+	response, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+	response = strings.ToLower(strings.TrimSpace(response))
+
+	if response == "y" || response == "yes" {
+		return true
+	}
+	return false
+
 }

@@ -14,6 +14,7 @@ type Task interface {
 	Local() bool
 	Name() string
 	Desc() string
+	Prompt() string
 }
 
 // CommonTask is minimum unit of task with target runners for ops to run
@@ -26,6 +27,7 @@ type CommonTask struct {
 	local   bool
 	name    string
 	desc    string
+	prompt  string // task prompt
 }
 
 func NewCommonTask(options ...func(*CommonTask)) *CommonTask {
@@ -70,7 +72,11 @@ func WithLocal(local bool) func(*CommonTask) {
 		ct.local = local
 	}
 }
-
+func WithPrompt(prompt string) func(*CommonTask) {
+	return func(ct *CommonTask) {
+		ct.prompt = prompt
+	}
+}
 func WithStdin(stdin func() (io.Reader, error)) func(*CommonTask) {
 	return func(ct *CommonTask) {
 		ct.stdin = stdin
@@ -102,4 +108,7 @@ func (ct *CommonTask) Name() string {
 }
 func (ct *CommonTask) Desc() string {
 	return ct.desc
+}
+func (ct *CommonTask) Prompt() string {
+	return ct.prompt
 }

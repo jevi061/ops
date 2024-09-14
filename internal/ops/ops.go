@@ -1,9 +1,10 @@
 package ops
 
 type Ops struct {
-	conf   *Opsfile
-	debug  bool
-	dryRun bool
+	conf          *Opsfile
+	debug         bool
+	dryRun        bool
+	alwaysConfirm bool
 }
 
 type OpsOption func(*Ops)
@@ -16,6 +17,11 @@ func WithDebug(debug bool) OpsOption {
 func WithDryRun(dryRun bool) OpsOption {
 	return func(o *Ops) {
 		o.dryRun = dryRun
+	}
+}
+func WithAlwaysConfirm(alwaysConfirm bool) OpsOption {
+	return func(o *Ops) {
+		o.alwaysConfirm = alwaysConfirm
 	}
 }
 
@@ -61,7 +67,7 @@ func (ops *Ops) Run(serverTag string, tasks ...string) error {
 	if err != nil {
 		return err
 	}
-	exec := NewExecutor(ops.conf, ops.debug, ops.dryRun)
+	exec := NewExecutor(ops.conf, ops.debug, ops.dryRun, ops.alwaysConfirm)
 	if err := exec.Execute(connectorTasks, connectors); err != nil {
 		return err
 	}
