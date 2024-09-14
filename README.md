@@ -18,22 +18,25 @@ $ go install github.com/jevi061/ops@latest
 ## Usage
 
 ```shell
-# init 
+# show help 
+$ ops help [subcommand]
+
+# init a basic Opsfile to start
 $ ops init
 
 # list tasks in Opsfile
 $ ops list
 
-# run
+# run the specified task
 $ ops run TASK... [flags]
 
-# run single task
+# run single task, eg: build
 $ ops run build
 
-# run multi tasks
+# run multiple tasks in order
 $ ops run build test deploy
 
-# open interactive shell
+# open interactive shell to remote server
 $ ops ssh SERVER
 ```
 ## Concepts
@@ -63,9 +66,6 @@ tasks:
   test:
     desc: test the project
     command: make test
-  upload:
-    desc: upload tested project to remote
-    transfer: src -> dst
   deploy:
     desc: deploy tested project to remote
     command: make deploy
@@ -73,7 +73,6 @@ tasks:
       - prepare
       - build
       - test
-      - upload
 ```
 
 #### shell (Optional)
