@@ -63,12 +63,9 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 	}
 	// validate transfer
 	for k, v := range t.Names {
-		if v.Cmd != "" && v.Transfer != "" {
-			return fmt.Errorf("task: %s defined with command and transfer simultaneously", k)
-		}
-		if v.Transfer != "" {
-			if err := transfer.Validate(v.Transfer); err != nil {
-				return fmt.Errorf("invalid task: %s : %w", k, err)
+		if v.Payload != "" {
+			if err := transfer.Validate(v.Payload); err != nil {
+				return fmt.Errorf("invalid payload of task: %s : %w", k, err)
 			}
 		}
 	}
@@ -76,14 +73,14 @@ func (t *Tasks) UnmarshalYAML(node *yaml.Node) error {
 }
 
 type Task struct {
-	Name     string            `yaml:"name"`
-	Cmd      string            `yaml:"command"`
-	Prompt   string            `yaml:"prompt"`
-	Transfer string            `yaml:"transfer"`
-	Desc     string            `yaml:"desc"`
-	Local    bool              `yaml:"local"`
-	Envs     map[string]string `yaml:"environments"`
-	Deps     []string          `yaml:"dependencies"`
+	Name    string            `yaml:"name"`
+	Cmd     string            `yaml:"command"`
+	Prompt  string            `yaml:"prompt"`
+	Payload string            `yaml:"payload"`
+	Desc    string            `yaml:"desc"`
+	Local   bool              `yaml:"local"`
+	Envs    map[string]string `yaml:"environments"`
+	Deps    []string          `yaml:"dependencies"`
 }
 
 type Environments struct {

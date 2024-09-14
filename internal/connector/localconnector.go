@@ -68,34 +68,36 @@ func (r *LocalConnector) Run(tr Task, options *RunOptions) error {
 	if !ok {
 		return fmt.Errorf("shell: [%s] is not supported, please use sh、bash instead", tr.Shell())
 	}
-	cmd := exec.Command(tr.Shell(), flag, tr.Command())
-	jenvs := make([]string, 0)
-	for k, v := range tr.Environments() {
-		jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
-	}
-	cmd.Env = append(os.Environ(), jenvs...)
-	r.exec = cmd
-	var err error
-	r.stdout, err = cmd.StdoutPipe()
-	if err != nil {
-		return err
-	}
-
-	r.stderr, err = cmd.StderrPipe()
-	if err != nil {
-		return err
-	}
-
-	r.stdin, err = cmd.StdinPipe()
-	if err != nil {
-		return err
-	}
-	if options.Debug || options.DryRun {
-		fmt.Printf("%s%s %s %s\n", r.Promet(), tr.Shell(), flag, tr.Command())
-	}
-	if !options.DryRun {
-		if err := r.exec.Start(); err != nil {
+	for _, trCmd := range tr.Commands() {
+		cmd := exec.Command(tr.Shell(), flag, trCmd)
+		jenvs := make([]string, 0)
+		for k, v := range tr.Environments() {
+			jenvs = append(jenvs, fmt.Sprintf("%s=%s", k, v))
+		}
+		cmd.Env = append(os.Environ(), jenvs...)
+		r.exec = cmd
+		var err error
+		r.stdout, err = cmd.StdoutPipe()
+		if err != nil {
 			return err
+		}
+
+		r.stderr, err = cmd.StderrPipe()
+		if err != nil {
+			return err
+		}
+
+		r.stdin, err = cmd.StdinPipe()
+		if err != nil {
+			return err
+		}
+		if options.Debug || options.DryRun {
+			fmt.Printf("%s%s %s %s\n", r.Promet(), tr.Shell(), flag, trCmd)
+		}
+		if !options.DryRun {
+			if err := r.exec.Start(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

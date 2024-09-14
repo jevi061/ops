@@ -14,11 +14,11 @@ import (
 // Validate validates transfer syntex.
 func Validate(trans string) error {
 	if trans == "" {
-		return errors.New("empty transfer is not allowed")
+		return errors.New("empty payload is not allowed")
 	}
 	fields := strings.Fields(trans)
 	if len(fields) != 3 || fields[1] != "->" {
-		return errors.New("incorrect file transfer syntex, use: LOCAL_SRC -> REMOTE_DIRECTORY")
+		return errors.New("incorrect payload syntex, use: LOCAL_SRC -> REMOTE_DIRECTORY or LOCAL_DIRECTORY <- REMOTE_SRC")
 	}
 	return nil
 }
@@ -31,9 +31,9 @@ func ParseTransfer(trans string) (string, string, error) {
 	return fields[0], fields[2], nil
 }
 
-// ParseTransferWithEnvs parses transfer directive to get source and dest from it,and source will be
+// ParsePayloadWithEnvs parses transfer directive to get source and dest from it,and source will be
 // expanded using provided envs.
-func ParseTransferWithEnvs(trans string, envs map[string]string) (string, string, error) {
+func ParsePayloadWithEnvs(trans string, envs map[string]string) (string, string, error) {
 	if err := Validate(trans); err != nil {
 		return "", "", err
 	}

@@ -78,10 +78,10 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 			}
 		}
 		// task itself
-		if task.Transfer != "" { // upload task
-			absSrc, dest, err := transfer.ParseTransferWithEnvs(task.Transfer, task.Envs)
+		if task.Payload != "" { // upload task
+			absSrc, dest, err := transfer.ParsePayloadWithEnvs(task.Payload, task.Envs)
 			if err != nil {
-				return nil, fmt.Errorf("invalid task: %s : %w", task.Name, err)
+				return nil, fmt.Errorf("invalid payload of task: %s : %w", task.Name, err)
 			}
 			// build cmd
 			cmd := fmt.Sprintf(`tar -C %s -xvzf - `, dest)
@@ -89,7 +89,7 @@ func (p *connectorTaskPreparer) PrepareTask(conf *Opsfile, taskName string) ([]c
 			t := connector.NewCommonTask(connector.WithName(task.Name),
 				connector.WithDesc(task.Desc),
 				connector.WithShell(conf.Shell),
-				connector.WithCommand(cmd),
+				connector.WithCommand(cmd, task.Cmd),
 				connector.WithEnvironments(task.Envs),
 				connector.WithLocal(false),
 				connector.WithStdin(stdin),

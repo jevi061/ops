@@ -135,64 +135,66 @@ func (r *SSHConnector) Run(tr Task, options *RunOptions) error {
 	if !ok {
 		return fmt.Errorf("shell: [%s] is not supported,please use sh and bash instead", tr.Shell())
 	}
-	cmd := fmt.Sprintf("%s %s '%s'", tr.Shell(), flag, tr.Command())
-	sudoPrompt := fmt.Sprintf(`[sudo via ops, id=%s] password:`, r.ID())
-	if strings.Contains(cmd, "sudo") {
-		cmd = strings.ReplaceAll(cmd, "sudo", fmt.Sprintf(`sudo -E -p "%s"`, sudoPrompt))
-	}
-	cmd = envStr + " " + cmd
-	if options.Debug || options.DryRun {
-		fmt.Printf("%s%s\n", r.Promet(), cmd)
-		if options.DryRun {
-			return nil
+	for _, trCmd := range tr.Commands() {
+		cmd := fmt.Sprintf("%s %s '%s'", tr.Shell(), flag, trCmd)
+		sudoPrompt := fmt.Sprintf(`[sudo via ops, id=%s] password:`, r.ID())
+		if strings.Contains(cmd, "sudo") {
+			cmd = strings.ReplaceAll(cmd, "sudo", fmt.Sprintf(`sudo -E -p "%s"`, sudoPrompt))
 		}
-	}
-	// prepare session
-	session, err := r.conn.NewSession()
-	if err != nil {
-		return err
-	}
-	r.session = session
-	r.sessionOpened = true
-	r.stdin, err = r.session.StdinPipe()
-	if err != nil {
-		return err
-	}
-	stdout, err := r.session.StdoutPipe()
-	if err != nil {
-		return err
-	}
-	r.stderr, err = r.session.StderrPipe()
-	if err != nil {
-		return err
-	}
-	// setup envs
-	for k, v := range tr.Environments() {
-		r.session.Setenv(k, v)
-	}
-	// setup sshpass
-	r.stdout = &passReader{host: r.host, user: r.user, password: r.password, expect: sudoPrompt, reader: bufio.NewReader(stdout), stdin: r.stdin}
-
-	if tr.Stdin() == nil {
-		// request pty
-		// Set up terminal modes
-		modes := ssh.TerminalModes{
-			ssh.ECHO:          0, // enable echoing
-			ssh.ECHOCTL:       0,
-			ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
-			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
-			ssh.VSTATUS:       1,
+		cmd = envStr + " " + cmd
+		if options.Debug || options.DryRun {
+			fmt.Printf("%s%s\n", r.Promet(), cmd)
 		}
-		w, h := termsize.DefaultSize(800, 600)
-		// Request pseudo terminal
-		if err := r.session.RequestPty("xterm", h, w, modes); err != nil {
-			return err
+		if !options.DryRun {
+			// prepare session
+			session, err := r.conn.NewSession()
+			if err != nil {
+				return err
+			}
+			r.session = session
+			r.sessionOpened = true
+			r.stdin, err = r.session.StdinPipe()
+			if err != nil {
+				return err
+			}
+			stdout, err := r.session.StdoutPipe()
+			if err != nil {
+				return err
+			}
+			r.stderr, err = r.session.StderrPipe()
+			if err != nil {
+				return err
+			}
+			// setup envs
+			for k, v := range tr.Environments() {
+				r.session.Setenv(k, v)
+			}
+			// setup sshpass
+			r.stdout = &passReader{host: r.host, user: r.user, password: r.password, expect: sudoPrompt, reader: bufio.NewReader(stdout), stdin: r.stdin}
+
+			if tr.Stdin() == nil {
+				fmt.Println("stdin is not nil,request pty")
+				// request pty
+				// Set up terminal modes
+				modes := ssh.TerminalModes{
+					ssh.ECHO:          0, // enable echoing
+					ssh.ECHOCTL:       0,
+					ssh.TTY_OP_ISPEED: 14400, // input speed = 14.4kbaud
+					ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
+					ssh.VSTATUS:       1,
+				}
+				w, h := termsize.DefaultSize(800, 600)
+				// Request pseudo terminal
+				if err := r.session.RequestPty("xterm", h, w, modes); err != nil {
+					return err
+				}
+
+			}
+			if err := r.session.Start(cmd); err != nil {
+				return err
+			}
 		}
 
-	}
-
-	if err := r.session.Start(cmd); err != nil {
-		return err
 	}
 	return nil
 

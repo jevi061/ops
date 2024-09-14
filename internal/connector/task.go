@@ -4,10 +4,12 @@ import (
 	"io"
 )
 
-// TaskRun executable/runnable task
+// Task represents executable/runnable task through connector
 type Task interface {
+	// Shell defines environment for command to run. Currently, only sh and bash are supported.
 	Shell() string
-	Command() string
+	// Shell command or scripts of task
+	Commands() []string
 	Environments() map[string]string
 	Stdin() func() (io.Reader, error)
 	Sudo() bool
@@ -19,15 +21,15 @@ type Task interface {
 
 // CommonTask is minimum unit of task with target runners for ops to run
 type CommonTask struct {
-	shell   string
-	command string
-	envs    map[string]string
-	stdin   func() (io.Reader, error) // input generator
-	sudo    bool
-	local   bool
-	name    string
-	desc    string
-	prompt  string // task prompt
+	shell    string
+	commands []string
+	envs     map[string]string
+	stdin    func() (io.Reader, error) // input generator
+	sudo     bool
+	local    bool
+	name     string
+	desc     string
+	prompt   string // task prompt
 }
 
 func NewCommonTask(options ...func(*CommonTask)) *CommonTask {
@@ -42,9 +44,9 @@ func WithShell(shell string) func(*CommonTask) {
 		ct.shell = shell
 	}
 }
-func WithCommand(command string) func(*CommonTask) {
+func WithCommand(command ...string) func(*CommonTask) {
 	return func(ct *CommonTask) {
-		ct.command = command
+		ct.commands = append(ct.commands, command...)
 	}
 }
 func WithEnvironments(envs map[string]string) func(*CommonTask) {
@@ -87,8 +89,8 @@ func (ct *CommonTask) Shell() string {
 }
 
 // Command return executable sh/bash commands
-func (ct *CommonTask) Command() string {
-	return ct.command
+func (ct *CommonTask) Commands() []string {
+	return ct.commands
 }
 func (ct *CommonTask) Environments() map[string]string {
 	return ct.envs
