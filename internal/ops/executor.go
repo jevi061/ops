@@ -223,7 +223,7 @@ func (e *cliExecutor) hasRemoteTask(tasks []connector.Task) bool {
 func (p *execPrinter) PrintTaskHeader(t connector.Task, divider byte) {
 	fmt.Println()
 	name := t.Name()
-	title := fmt.Sprintf("%s [%s] %s", bold("Task"), bold(name), t.Desc())
+	title := fmt.Sprintf("%s [%s] %s", bold("Task:"), bold(name), t.Desc())
 	titleLen := runewidth.StringWidth(title)
 	w, _ := termsize.DefaultSize(10, 0)
 	suffix := ""
